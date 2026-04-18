@@ -26,6 +26,6 @@ def update(frame):
 
 
 ani = animation.FuncAnimation(fig, update, frames=60, init_func=init, blit=True, interval=50)
-ani.save("example_video.mp4", writer="ffmpeg", fps=20)
-print("Saved example_video.mp4")
+ani.save("example_video.gif", writer="pillow", fps=20)
+print("Saved example_video.gif")
 plt.close()
