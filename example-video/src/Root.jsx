@@ -1,15 +1,15 @@
 import { Composition } from "remotion";
-import { MyComposition } from "./MyComposition";
+import { RealEstateVideo } from "./RealEstate";
 
 export const RemotionRoot = () => {
   return (
     <Composition
-      id="MyComposition"
-      component={MyComposition}
-      durationInFrames={90}
+      id="RealEstate"
+      component={RealEstateVideo}
+      durationInFrames={360}
       fps={30}
-      width={1280}
-      height={720}
+      width={1920}
+      height={1080}
     />
   );
 };
