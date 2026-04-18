@@ -1,7 +1,7 @@
-import { Composition } from "remotion";
+import { Composition, registerRoot } from "remotion";
 import { RealEstateVideo } from "./RealEstate";
 
-export const RemotionRoot = () => {
+const RemotionRoot = () => {
   return (
     <Composition
       id="RealEstate"
@@ -13,3 +13,5 @@ export const RemotionRoot = () => {
     />
   );
 };
+
+registerRoot(RemotionRoot);
