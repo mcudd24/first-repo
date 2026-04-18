@@ -50,7 +50,7 @@ const PersistentOverlay = () => {
             Your Property Address
           </div>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 22, fontFamily: "sans-serif", marginTop: 8, letterSpacing: 2 }}>
-            City, TX
+            Woodland Hills, TX
           </div>
         </div>
 
@@ -60,7 +60,7 @@ const PersistentOverlay = () => {
             Asking Price
           </div>
           <div style={{ color: "#e8c97a", fontSize: 52, fontWeight: 300, fontFamily: "Georgia, serif", textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>
-            $000,000
+            $365,400
           </div>
         </div>
       </div>
