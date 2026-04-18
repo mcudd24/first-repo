@@ -47,10 +47,10 @@ const PersistentOverlay = () => {
             For Sale
           </div>
           <div style={{ color: "white", fontSize: 52, fontWeight: 300, fontFamily: "Georgia, serif", lineHeight: 1.1, textShadow: "0 2px 12px rgba(0,0,0,0.6)" }}>
-            Your Property Address
+            5528 Woodland Hills
           </div>
           <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 22, fontFamily: "sans-serif", marginTop: 8, letterSpacing: 2 }}>
-            Woodland Hills, TX
+            Denton, TX 76208
           </div>
         </div>
 
