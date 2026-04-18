@@ -79,7 +79,7 @@ const PersistentOverlay = () => {
         {[
           { label: "Beds", value: "3" },
           { label: "Baths", value: "2" },
-          { label: "Sq Ft", value: "0,000" },
+          { label: "Sq Ft", value: "2,300" },
           { label: "Lot", value: "0.0 ac" },
         ].map(({ label, value }) => (
           <div
