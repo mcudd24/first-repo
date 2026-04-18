@@ -1,0 +1,19 @@
+{
+  "name": "example-video",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "remotion": {
+    "entryPoint": "src/Root.jsx"
+  },
+  "scripts": {
+    "render": "remotion render MyComposition out/example_video.mp4"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/cli": "^4.0.448",
+    "remotion": "^4.0.448"
+  }
+}
