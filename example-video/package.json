@@ -7,8 +7,8 @@
     "entryPoint": "src/Root.jsx"
   },
   "scripts": {
-    "render": "remotion render RealEstate out/real_estate.mp4",
-    "studio": "remotion studio"
+    "render": "remotion render src/Root.jsx RealEstate out/real_estate.mp4",
+    "studio": "remotion studio src/Root.jsx"
   },
   "keywords": [],
   "author": "",
