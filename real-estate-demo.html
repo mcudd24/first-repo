@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>5528 Woodland Hills Dr — Cudd Realty</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Georgia', serif;
+    overflow: hidden;
+  }
+
+  #player {
+    position: relative;
+    width: 960px;
+    height: 540px;
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,.9);
+    cursor: pointer;
+  }
+
+  .scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .scene.active { opacity: 1; }
+
+  /* ── Photo background helper ── */
+  .photo-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+  }
+  .photo-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,.10) 0%, rgba(0,0,0,.55) 100%);
+  }
+
+  @keyframes kb-zoom-in  { from { transform: scale(1.12); } to { transform: scale(1.0); } }
+  @keyframes kb-zoom-out { from { transform: scale(1.0);  } to { transform: scale(1.10); } }
+  @keyframes kb-pan-r    { from { transform: scale(1.08) translateX(0);   } to { transform: scale(1.08) translateX(-4%); } }
+  @keyframes kb-pan-l    { from { transform: scale(1.08) translateX(-4%); } to { transform: scale(1.08) translateX(0); } }
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:none; } }
+  @keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
+  @keyframes widen   { from { width:0; } to { width:var(--w, 140px); } }
+
+  /* ══════════════════════════
+     SCENE 1 — Brand Intro (0–5s)
+  ══════════════════════════ */
+  #s1 {
+    background: radial-gradient(ellipse 90% 70% at 50% 50%, #1c2c1a 0%, #050a04 100%);
+  }
+  #s1 .inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px;
+  }
+  #s1 .eyebrow { font-size:11px; letter-spacing:7px; color:#8db87a; text-transform:uppercase; opacity:0; }
+  #s1 .brand   { font-size:52px; font-weight:300; color:#fff; letter-spacing:2px; opacity:0; }
+  #s1 .bar     { --w:160px; width:0; height:1px; background:#8db87a; margin:8px auto; }
+  #s1 .tagline { font-size:14px; letter-spacing:4px; color:#aaa; text-transform:uppercase; opacity:0; }
+  #s1 .web     { font-size:12px; letter-spacing:3px; color:#8db87a; opacity:0; margin-top:4px; }
+
+  #s1.active .eyebrow { animation: fadeUp .7s .2s ease both; }
+  #s1.active .brand   { animation: fadeUp .8s .7s ease both; }
+  #s1.active .bar     { animation: widen 1s .9s ease both; }
+  #s1.active .tagline { animation: fadeUp .7s 1.4s ease both; }
+  #s1.active .web     { animation: fadeUp .6s 1.9s ease both; }
+
+  /* ══════════════════════════
+     SCENE 2 — Exterior (5–13s)
+  ══════════════════════════ */
+  #s2 .photo-bg {
+    background-image: url('photos/web_drone2.jpg');
+    animation: kb-zoom-in 8s ease both;
+  }
+  #s2 .caption {
+    position:absolute; bottom:52px; left:60px;
+    opacity:0;
+  }
+  #s2.active .caption { animation: fadeUp .8s .6s ease both; }
+  #s2 .new-tag {
+    display:inline-block; background:#8db87a; color:#fff;
+    font-size:10px; letter-spacing:5px; padding:5px 14px;
+    text-transform:uppercase; margin-bottom:10px;
+  }
+  #s2 .address { font-size:36px; font-weight:300; color:#fff; line-height:1.15; }
+  #s2 .city    { font-size:15px; color:#c0d8b0; letter-spacing:3px; margin-top:4px; }
+  #s2 .stats   { display:flex; gap:28px; margin-top:18px; opacity:0; }
+  #s2.active .stats { animation: fadeUp .7s 1.5s ease both; }
+  .stat-num   { font-size:26px; color:#fff; font-weight:300; }
+  .stat-label { font-size:10px; letter-spacing:2px; color:#bbb; text-transform:uppercase; }
+
+  #s2 .price-badge {
+    position:absolute; top:38px; right:52px;
+    background:rgba(0,0,0,.55); border:1px solid #8db87a;
+    padding:14px 22px; text-align:center; opacity:0;
+  }
+  #s2.active .price-badge { animation: fadeIn .8s 1.2s ease both; }
+  .price-amt   { font-size:28px; color:#fff; font-weight:300; letter-spacing:1px; }
+  .price-label { font-size:10px; letter-spacing:4px; color:#8db87a; text-transform:uppercase; }
+
+  /* ══════════════════════════
+     SCENE 3 — Living Room (13–21s)
+  ══════════════════════════ */
+  #s3 .photo-bg {
+    background-image: url('photos/web_interior1.jpg');
+    animation: kb-pan-r 8s ease both;
+  }
+  #s3 .caption {
+    position:absolute; bottom:52px; right:60px; text-align:right;
+    opacity:0;
+  }
+  #s3.active .caption { animation: fadeUp .8s .5s ease both; }
+  .room-label { font-size:10px; letter-spacing:6px; color:#8db87a; text-transform:uppercase; margin-bottom:8px; }
+  .room-name  { font-size:42px; font-weight:300; color:#fff; }
+  .room-desc  { font-size:13px; color:#ddd; max-width:320px; line-height:1.65; margin-top:10px; opacity:0; }
+  #s3.active .room-desc { animation: fadeUp .7s 1.3s ease both; }
+
+  /* ══════════════════════════
+     SCENE 4 — Kitchen (21–29s)
+  ══════════════════════════ */
+  #s4 .photo-bg {
+    background-image: url('photos/web_interior2.jpg');
+    animation: kb-zoom-out 8s ease both;
+  }
+  #s4 .caption {
+    position:absolute; bottom:52px; left:60px;
+    opacity:0;
+  }
+  #s4.active .caption { animation: fadeUp .8s .5s ease both; }
+  #s4 .feat-list { display:flex; flex-direction:column; gap:7px; margin-top:14px; opacity:0; }
+  #s4.active .feat-list { animation: fadeUp .7s 1.3s ease both; }
+  .feat { display:flex; align-items:center; gap:10px; font-size:13px; color:#e0e0e0; letter-spacing:.5px; }
+  .feat::before { content:''; display:inline-block; width:18px; height:1px; background:#8db87a; flex-shrink:0; }
+
+  /* ══════════════════════════
+     SCENE 5 — Master Bedroom (29–37s)
+  ══════════════════════════ */
+  #s5 .photo-bg {
+    background-image: url('photos/web_interior3.jpg');
+    animation: kb-pan-l 8s ease both;
+  }
+  #s5 .caption {
+    position:absolute; bottom:52px; right:60px; text-align:right;
+    opacity:0;
+  }
+  #s5.active .caption { animation: fadeUp .8s .5s ease both; }
+  #s5 .room-desc { text-align:right; opacity:0; }
+  #s5.active .room-desc { animation: fadeUp .7s 1.3s ease both; }
+  #s5 .badge {
+    position:absolute; top:38px; left:52px;
+    border:1px solid rgba(141,184,122,.6);
+    background:rgba(0,0,0,.45);
+    padding:12px 20px; opacity:0;
+  }
+  #s5.active .badge { animation: fadeIn .7s 1s ease both; }
+  .badge-label { font-size:10px; letter-spacing:4px; color:#8db87a; text-transform:uppercase; }
+  .badge-val   { font-size:20px; color:#fff; font-weight:300; }
+
+  /* ══════════════════════════
+     SCENE 6 — Shed / Backyard (37–43s)
+  ══════════════════════════ */
+  #s6 .photo-bg {
+    background-image: url('photos/web_drone1.jpg');
+    animation: kb-zoom-in 6s ease both;
+  }
+  #s6 .caption {
+    position:absolute; bottom:52px; left:60px;
+    opacity:0;
+  }
+  #s6.active .caption { animation: fadeUp .8s .5s ease both; }
+  #s6 .highlights { display:flex; flex-direction:column; gap:7px; margin-top:14px; opacity:0; }
+  #s6.active .highlights { animation: fadeUp .7s 1.3s ease both; }
+
+  /* ══════════════════════════
+     SCENE 7 — CTA (43–45s)
+  ══════════════════════════ */
+  #s7 {
+    background: radial-gradient(ellipse 90% 70% at 50% 50%, #1c2c1a 0%, #050a04 100%);
+  }
+  #s7 .inner {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    gap:10px; text-align:center;
+  }
+  #s7 .price-label { font-size:11px; letter-spacing:8px; color:#8db87a; text-transform:uppercase; opacity:0; }
+  #s7 .price       { font-size:62px; font-weight:200; color:#fff; letter-spacing:-1px; opacity:0; }
+  #s7 .bar         { --w:220px; width:0; height:1px; background:#8db87a; margin:10px auto; }
+  #s7 .agent       { font-size:20px; font-weight:300; color:#fff; letter-spacing:4px; text-transform:uppercase; opacity:0; }
+  #s7 .contact     { font-size:13px; color:#999; letter-spacing:2px; opacity:0; }
+  #s7 .cta         {
+    margin-top:18px; border:1px solid #8db87a;
+    padding:13px 38px; font-size:11px; letter-spacing:5px;
+    color:#8db87a; text-transform:uppercase; opacity:0;
+  }
+
+  #s7.active .price-label { animation: fadeUp .6s .1s ease both; }
+  #s7.active .price       { animation: fadeUp .8s .4s ease both; }
+  #s7.active .bar         { animation: widen 1s .9s ease both; }
+  #s7.active .agent       { animation: fadeUp .7s 1.1s ease both; }
+  #s7.active .contact     { animation: fadeUp .6s 1.5s ease both; }
+  #s7.active .cta         { animation: fadeUp .7s 1.8s ease both; }
+
+  /* ── Progress / Controls ── */
+  #progress-bar { position:absolute; bottom:0; left:0; height:3px; background:#8db87a; width:0; }
+  #dots { position:absolute; bottom:16px; left:50%; transform:translateX(-50%); display:flex; gap:8px; }
+  .dot  { width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,.25); transition:background .3s, transform .3s; }
+  .dot.active { background:#8db87a; transform:scale(1.4); }
+  #timer { position:absolute; bottom:26px; right:18px; font-size:11px; letter-spacing:2px; color:rgba(255,255,255,.35); font-family:monospace; }
+
+  #play-btn {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:72px; height:72px; border-radius:50%;
+    background:rgba(141,184,122,.9);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:opacity .4s, transform .2s;
+    box-shadow:0 8px 32px rgba(0,0,0,.6);
+  }
+  #play-btn:hover { transform:translate(-50%,-50%) scale(1.08); }
+  #play-btn svg   { width:28px; height:28px; fill:#fff; margin-left:4px; }
+  #play-btn.hidden { opacity:0; pointer-events:none; }
+
+  #replay-btn {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+    width:72px; height:72px; border-radius:50%;
+    background:rgba(141,184,122,.9);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:opacity .4s;
+    box-shadow:0 8px 32px rgba(0,0,0,.6);
+    opacity:0; pointer-events:none;
+  }
+  #replay-btn.visible { opacity:1; pointer-events:all; }
+  #replay-btn svg { width:26px; height:26px; fill:#fff; }
+</style>
+</head>
+<body>
+<div id="player">
+
+  <!-- S1: Brand Intro -->
+  <div class="scene" id="s1">
+    <div class="inner">
+      <div class="eyebrow">Denton, Texas Real Estate</div>
+      <div class="brand">Cudd Realty</div>
+      <div class="bar"></div>
+      <div class="tagline">Where Home Begins</div>
+      <div class="web">cuddrealtyinc.com &nbsp;·&nbsp; (940) 595-5550</div>
+    </div>
+  </div>
+
+  <!-- S2: Exterior -->
+  <div class="scene" id="s2">
+    <div class="photo-bg"></div>
+    <div class="photo-overlay"></div>
+    <div class="price-badge">
+      <div class="price-label">Offered At</div>
+      <div class="price-amt">$364,500</div>
+    </div>
+    <div class="caption">
+      <div class="new-tag">New Listing</div>
+      <div class="address">5528 Woodland Hills Dr</div>
+      <div class="city">Denton, TX 76208</div>
+      <div class="stats">
+        <div><div class="stat-num">3</div><div class="stat-label">Bedrooms</div></div>
+        <div><div class="stat-num">2</div><div class="stat-label">Bathrooms</div></div>
+        <div><div class="stat-num">2,236</div><div class="stat-label">Sq. Ft.</div></div>
+        <div><div class="stat-num">0.42</div><div class="stat-label">Acres</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: Living Room -->
+  <div class="scene" id="s3">
+    <div class="photo-bg"></div>
+    <div class="photo-overlay"></div>
+    <div class="caption">
+      <div class="room-label">Main Living</div>
+      <div class="room-name">Living Room</div>
+      <div class="room-desc">
+        Vaulted ceilings, cozy brick fireplace, and built-in shelving
+        create a warm and inviting main gathering space.
+      </div>
+    </div>
+  </div>
+
+  <!-- S4: Kitchen -->
+  <div class="scene" id="s4">
+    <div class="photo-bg"></div>
+    <div class="photo-overlay"></div>
+    <div class="caption">
+      <div class="room-label">Culinary</div>
+      <div class="room-name">Updated Kitchen</div>
+      <div class="feat-list">
+        <div class="feat">White shaker cabinets &amp; subway tile backsplash</div>
+        <div class="feat">Stainless steel appliances throughout</div>
+        <div class="feat">Herringbone wood-look tile flooring</div>
+        <div class="feat">Open shelving with pantry storage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S5: Master Bedroom -->
+  <div class="scene" id="s5">
+    <div class="photo-bg"></div>
+    <div class="photo-overlay"></div>
+    <div class="badge">
+      <div class="badge-label">En-Suite Bath</div>
+      <div class="badge-val">Included</div>
+    </div>
+    <div class="caption">
+      <div class="room-label">Primary Suite</div>
+      <div class="room-name">Master Bedroom</div>
+      <div class="room-desc">
+        Spacious retreat with private en-suite bathroom,
+        large windows, and serene natural light.
+      </div>
+    </div>
+  </div>
+
+  <!-- S6: Shed / Backyard -->
+  <div class="scene" id="s6">
+    <div class="photo-bg"></div>
+    <div class="photo-overlay"></div>
+    <div class="caption">
+      <div class="room-label">Outdoor Features</div>
+      <div class="room-name">The Backyard</div>
+      <div class="highlights">
+        <div class="feat">20 × 16 ft storage building / workshop</div>
+        <div class="feat">8 × 8 ft chicken coop — country living ready</div>
+        <div class="feat">0.42-acre fenced lot with mature trees</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7: CTA -->
+  <div class="scene" id="s7">
+    <div class="inner">
+      <div class="price-label">Listed At</div>
+      <div class="price">$364,500</div>
+      <div class="bar"></div>
+      <div class="agent">Mariella Cudd</div>
+      <div class="contact">(940) 595-5550 &nbsp;·&nbsp; cuddrealtyinc.com</div>
+      <div class="cta">Schedule a Showing</div>
+    </div>
+  </div>
+
+  <div id="progress-bar"></div>
+  <div id="dots">
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+  <div id="timer">0:00 / 0:45</div>
+
+  <div id="play-btn">
+    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+  </div>
+  <div id="replay-btn">
+    <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+  </div>
+</div>
+
+<script>
+const SCENES = [
+  { id:'s1', start:0  },{ id:'s2', start:5  },{ id:'s3', start:13 },
+  { id:'s4', start:21 },{ id:'s5', start:29 },{ id:'s6', start:37 },{ id:'s7', start:43 },
+];
+const DURATION = 45;
+const sceneEls = SCENES.map(s => document.getElementById(s.id));
+const dots     = [...document.querySelectorAll('.dot')];
+const bar      = document.getElementById('progress-bar');
+const timerEl  = document.getElementById('timer');
+const playBtn  = document.getElementById('play-btn');
+const replayBtn= document.getElementById('replay-btn');
+
+let elapsed = 0, lastTime = null, rafId = null, playing = false, activeIdx = -1;
+
+function fmt(s){ return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+
+function setScene(idx){
+  if(idx===activeIdx) return;
+  sceneEls.forEach((el,i)=>el.classList.toggle('active',i===idx));
+  dots.forEach((d,i)=>d.classList.toggle('active',i===idx));
+  activeIdx=idx;
+}
+
+function tick(ts){
+  if(!playing) return;
+  if(lastTime==null) lastTime=ts;
+  elapsed=Math.min(elapsed+(ts-lastTime)/1000, DURATION);
+  lastTime=ts;
+  bar.style.width=(elapsed/DURATION*100)+'%';
+  timerEl.textContent=`${fmt(elapsed)} / ${fmt(DURATION)}`;
+  const idx=SCENES.reduce((b,s,i)=>elapsed>=s.start?i:b,0);
+  setScene(idx);
+  if(elapsed>=DURATION){ finish(); return; }
+  rafId=requestAnimationFrame(tick);
+}
+
+function play(){
+  if(playing) return;
+  playing=true; lastTime=null;
+  playBtn.classList.add('hidden');
+  replayBtn.classList.remove('visible');
+  rafId=requestAnimationFrame(tick);
+}
+
+function finish(){
+  playing=false;
+  cancelAnimationFrame(rafId);
+  replayBtn.classList.add('visible');
+}
+
+function replay(){
+  elapsed=0; activeIdx=-1; bar.style.width='0';
+  sceneEls.forEach(el=>el.classList.remove('active'));
+  dots.forEach(d=>d.classList.remove('active'));
+  replayBtn.classList.remove('visible');
+  play();
+}
+
+playBtn.addEventListener('click', play);
+replayBtn.addEventListener('click', replay);
+document.getElementById('player').addEventListener('click', e=>{
+  if(replayBtn.contains(e.target)) return;
+  if(!playing && elapsed<DURATION) play();
+});
+</script>
+</body>
+</html>
