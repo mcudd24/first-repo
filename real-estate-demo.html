@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Luxury Real Estate — 340 Crestview Drive</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Georgia', serif;
+    overflow: hidden;
+  }
+
+  /* ── Player Shell ── */
+  #player {
+    position: relative;
+    width: 960px;
+    height: 540px;
+    background: #000;
+    overflow: hidden;
+    box-shadow: 0 40px 120px rgba(0,0,0,.9);
+    cursor: pointer;
+  }
+
+  /* ── Scene Base ── */
+  .scene {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .scene.active { opacity: 1; }
+
+  /* ── Ken Burns helper ── */
+  @keyframes kb-in  { from { transform: scale(1.12); } to { transform: scale(1); } }
+  @keyframes kb-out { from { transform: scale(1);    } to { transform: scale(1.1); } }
+  @keyframes kb-pan { from { transform: scale(1.1) translateX(0);    } to { transform: scale(1.1) translateX(-3%); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes pulse  { 0%,100% { opacity: 1; } 50% { opacity: .6; } }
+  @keyframes progressBar { from { width: 0; } to { width: 100%; } }
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position:  400px 0; }
+  }
+
+  /* ══════════════════════════════════════
+     SCENE 1 — Brand Intro  (0 – 5 s)
+  ══════════════════════════════════════ */
+  #s1 { background: #0d0d0d; }
+  #s1 .bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 50%, #1a2840 0%, #050810 100%);
+  }
+  #s1 .logo-wrap {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+  }
+  #s1 .brand {
+    font-family: 'Georgia', serif;
+    font-size: 13px;
+    letter-spacing: 8px;
+    color: #c8a96e;
+    text-transform: uppercase;
+    opacity: 0;
+  }
+  #s1 .tagline {
+    font-size: 46px;
+    font-weight: 300;
+    color: #fff;
+    letter-spacing: 2px;
+    opacity: 0;
+  }
+  #s1 .sub {
+    font-size: 13px;
+    letter-spacing: 5px;
+    color: #888;
+    text-transform: uppercase;
+    opacity: 0;
+  }
+  #s1 .divider {
+    width: 0; height: 1px;
+    background: #c8a96e;
+    margin: 6px auto;
+  }
+  #s1.active .brand   { animation: fadeUp .7s .3s ease both; }
+  #s1.active .divider { transition: width 1s .8s ease; width: 120px; }
+  #s1.active .tagline { animation: fadeUp .8s 1s ease both; }
+  #s1.active .sub     { animation: fadeUp .7s 1.6s ease both; }
+
+  /* ══════════════════════════════════════
+     SCENE 2 — Exterior Hero  (5 – 13 s)
+  ══════════════════════════════════════ */
+  #s2 .photo {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,.15) 0%, rgba(0,0,0,.55) 100%),
+      linear-gradient(135deg,
+        #2e4a2b 0%, #3d6b36 15%, #5a8a50 28%,
+        #8faa6e 38%, #b5c990 48%,
+        #e8dfc0 52%, #d4c9a0 58%,
+        #c9b98a 65%, #a89066 72%,
+        #8a7250 78%, #9fb89c 85%,
+        #6b9464 92%, #4a7242 100%);
+    animation: kb-in 8s ease both;
+  }
+  /* Simulated house silhouette */
+  #s2 .house {
+    position: absolute;
+    bottom: 32%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 380px;
+    height: 180px;
+    opacity: .18;
+  }
+  #s2 .address-wrap {
+    position: absolute; bottom: 60px; left: 64px;
+    opacity: 0;
+  }
+  #s2.active .address-wrap { animation: fadeUp .8s .8s ease both; }
+  #s2 .address-tag {
+    display: inline-block;
+    background: #c8a96e;
+    color: #fff;
+    font-size: 10px;
+    letter-spacing: 5px;
+    padding: 5px 14px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  #s2 .address {
+    font-size: 38px;
+    font-weight: 300;
+    color: #fff;
+    line-height: 1.1;
+  }
+  #s2 .city {
+    font-size: 16px;
+    color: #c8a96e;
+    letter-spacing: 3px;
+    margin-top: 6px;
+  }
+  #s2 .stats {
+    display: flex; gap: 32px;
+    margin-top: 20px;
+    opacity: 0;
+  }
+  #s2.active .stats { animation: fadeUp .7s 1.6s ease both; }
+  #s2 .stat-item { text-align: left; }
+  #s2 .stat-num { font-size: 26px; color: #fff; font-weight: 300; }
+  #s2 .stat-label { font-size: 11px; letter-spacing: 2px; color: #aaa; text-transform: uppercase; }
+
+  /* ══════════════════════════════════════
+     SCENE 3 — Living Room  (13 – 21 s)
+  ══════════════════════════════════════ */
+  #s3 .photo {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,.05) 0%, rgba(0,0,0,.5) 100%),
+      linear-gradient(160deg,
+        #f5e6c8 0%, #eddcb4 12%,
+        #e0cfa0 22%, #d4c090 30%,
+        #c8b080 38%, #bcaf90 45%,
+        #a89a80 52%, #c8b896 58%,
+        #ddd0b0 65%, #e8dcc0 72%,
+        #f0e4cc 80%, #e6d8b8 90%, #dccaa4 100%);
+    animation: kb-pan 8s ease both;
+  }
+  /* Sofa silhouette blocks */
+  #s3 .furniture {
+    position: absolute; bottom: 28%;
+    left: 50%; transform: translateX(-50%);
+    width: 100%; display: flex; justify-content: center; gap: 0;
+    opacity: .12;
+  }
+  #s3 .caption {
+    position: absolute; bottom: 48px; right: 60px; text-align: right;
+    opacity: 0;
+  }
+  #s3.active .caption { animation: fadeUp .8s .6s ease both; }
+  #s3 .room-label {
+    font-size: 11px; letter-spacing: 6px; color: #c8a96e;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  #s3 .room-name { font-size: 42px; font-weight: 300; color: #fff; }
+  #s3 .room-desc {
+    font-size: 14px; color: #ccc; max-width: 320px;
+    line-height: 1.6; margin-top: 10px;
+    opacity: 0;
+  }
+  #s3.active .room-desc { animation: fadeUp .7s 1.4s ease both; }
+
+  /* ══════════════════════════════════════
+     SCENE 4 — Kitchen  (21 – 29 s)
+  ══════════════════════════════════════ */
+  #s4 .photo {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,.1) 0%, rgba(0,0,0,.5) 100%),
+      linear-gradient(170deg,
+        #f8f4ee 0%, #f0ece4 10%,
+        #e4ddd0 20%, #d8d0c0 30%,
+        #ccc4b0 38%, #bab090 45%,
+        #a8a080 52%, #c0baa8 60%,
+        #d8d4c8 68%, #e8e4da 76%,
+        #f2f0e8 84%, #f8f6f0 92%, #faf8f4 100%);
+    animation: kb-in 8s ease both;
+  }
+  #s4 .caption {
+    position: absolute; bottom: 48px; left: 60px;
+    opacity: 0;
+  }
+  #s4.active .caption { animation: fadeUp .8s .6s ease both; }
+  #s4 .room-label { font-size: 11px; letter-spacing: 6px; color: #c8a96e; text-transform: uppercase; margin-bottom: 8px; }
+  #s4 .room-name  { font-size: 42px; font-weight: 300; color: #fff; }
+  #s4 .features {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-top: 14px; opacity: 0;
+  }
+  #s4.active .features { animation: fadeUp .7s 1.4s ease both; }
+  #s4 .feat {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: #ddd; letter-spacing: 1px;
+  }
+  #s4 .feat::before {
+    content: '';
+    display: inline-block; width: 18px; height: 1px;
+    background: #c8a96e;
+  }
+
+  /* ══════════════════════════════════════
+     SCENE 5 — Master Suite  (29 – 37 s)
+  ══════════════════════════════════════ */
+  #s5 .photo {
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(to bottom, rgba(0,0,0,.05) 0%, rgba(0,0,0,.55) 100%),
+      linear-gradient(145deg,
+        #1a1a2e 0%, #2a2a40 12%,
+        #3a3050 22%, #4a3860 30%,
+        #5a4870 38%, #6a5880 45%,
+        #7a6890 52%, #6a5880 58%,
+        #5a4870 65%, #4a4060 72%,
+        #3a3050 80%, #2a2840 90%, #1e1e32 100%);
+    animation: kb-out 8s ease both;
+  }
+  #s5 .caption {
+    position: absolute; bottom: 48px; right: 60px; text-align: right;
+    opacity: 0;
+  }
+  #s5.active .caption { animation: fadeUp .8s .6s ease both; }
+  #s5 .room-label { font-size: 11px; letter-spacing: 6px; color: #c8a96e; text-transform: uppercase; margin-bottom: 8px; }
+  #s5 .room-name  { font-size: 42px; font-weight: 300; color: #fff; }
+  #s5 .room-desc  { font-size: 14px; color: #ccc; max-width: 300px; line-height: 1.6; margin-top: 10px; text-align: right; opacity: 0; }
+  #s5.active .room-desc { animation: fadeUp .7s 1.4s ease both; }
+  #s5 .badge {
+    position: absolute; top: 40px; left: 50px;
+    background: rgba(200,169,110,.15);
+    border: 1px solid #c8a96e;
+    padding: 10px 20px;
+    opacity: 0;
+  }
+  #s5.active .badge { animation: fadeIn .8s 1s ease both; }
+  #s5 .badge-text { font-size: 11px; letter-spacing: 4px; color: #c8a96e; text-transform: uppercase; }
+  #s5 .badge-num  { font-size: 22px; color: #fff; font-weight: 300; }
+
+  /* ══════════════════════════════════════
+     SCENE 6 — Amenities Grid  (37 – 43 s)
+  ══════════════════════════════════════ */
+  #s6 {
+    background: linear-gradient(135deg, #0d1117 0%, #1a1f2e 100%);
+  }
+  #s6 .content {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 80px;
+  }
+  #s6 .section-label {
+    font-size: 11px; letter-spacing: 8px; color: #c8a96e;
+    text-transform: uppercase; margin-bottom: 20px;
+    opacity: 0;
+  }
+  #s6.active .section-label { animation: fadeUp .6s .2s ease both; }
+  #s6 .section-title {
+    font-size: 36px; font-weight: 300; color: #fff;
+    margin-bottom: 40px; opacity: 0;
+  }
+  #s6.active .section-title { animation: fadeUp .7s .5s ease both; }
+  #s6 .grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    width: 100%;
+    background: #2a2a2a;
+  }
+  #s6 .amenity {
+    background: #0d1117;
+    padding: 24px 20px;
+    text-align: center;
+    opacity: 0;
+  }
+  #s6.active .amenity:nth-child(1) { animation: fadeUp .6s .8s ease both; }
+  #s6.active .amenity:nth-child(2) { animation: fadeUp .6s 1.0s ease both; }
+  #s6.active .amenity:nth-child(3) { animation: fadeUp .6s 1.2s ease both; }
+  #s6.active .amenity:nth-child(4) { animation: fadeUp .6s 1.4s ease both; }
+  #s6.active .amenity:nth-child(5) { animation: fadeUp .6s 1.6s ease both; }
+  #s6.active .amenity:nth-child(6) { animation: fadeUp .6s 1.8s ease both; }
+  #s6.active .amenity:nth-child(7) { animation: fadeUp .6s 2.0s ease both; }
+  #s6.active .amenity:nth-child(8) { animation: fadeUp .6s 2.2s ease both; }
+  #s6 .amenity-icon { font-size: 28px; margin-bottom: 10px; }
+  #s6 .amenity-name { font-size: 12px; letter-spacing: 2px; color: #aaa; text-transform: uppercase; }
+  #s6 .amenity-val  { font-size: 18px; color: #fff; font-weight: 300; margin-top: 4px; }
+
+  /* ══════════════════════════════════════
+     SCENE 7 — CTA  (43 – 45 s)
+  ══════════════════════════════════════ */
+  #s7 {
+    background: #0a0c10;
+  }
+  #s7 .bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse 90% 70% at 50% 50%, #1a2840 0%, #050810 100%);
+  }
+  #s7 .content {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 12px;
+    text-align: center;
+  }
+  #s7 .price-label {
+    font-size: 11px; letter-spacing: 8px; color: #c8a96e;
+    text-transform: uppercase; opacity: 0;
+  }
+  #s7.active .price-label { animation: fadeUp .7s .1s ease both; }
+  #s7 .price {
+    font-size: 64px; font-weight: 200; color: #fff;
+    letter-spacing: -1px; opacity: 0;
+  }
+  #s7.active .price { animation: fadeUp .8s .4s ease both; }
+  #s7 .divider {
+    width: 0; height: 1px; background: #c8a96e; margin: 10px auto;
+  }
+  #s7.active .divider { transition: width 1s .9s ease; width: 200px; }
+  #s7 .agent-name {
+    font-size: 20px; font-weight: 300; color: #fff; letter-spacing: 4px;
+    text-transform: uppercase; opacity: 0;
+  }
+  #s7.active .agent-name { animation: fadeUp .7s 1.1s ease both; }
+  #s7 .contact {
+    font-size: 13px; color: #888; letter-spacing: 3px;
+    opacity: 0;
+  }
+  #s7.active .contact { animation: fadeUp .6s 1.5s ease both; }
+  #s7 .cta-btn {
+    margin-top: 20px;
+    border: 1px solid #c8a96e;
+    padding: 14px 40px;
+    font-size: 11px; letter-spacing: 5px;
+    color: #c8a96e; text-transform: uppercase;
+    opacity: 0;
+    cursor: pointer;
+    transition: background .3s, color .3s;
+  }
+  #s7.active .cta-btn { animation: fadeUp .7s 1.8s ease both; }
+  #s7 .cta-btn:hover { background: #c8a96e; color: #000; }
+
+  /* ── Progress Bar ── */
+  #progress-bar {
+    position: absolute; bottom: 0; left: 0;
+    height: 3px; background: #c8a96e;
+    width: 0; transition: none;
+  }
+
+  /* ── Overlay Controls ── */
+  #controls {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #play-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(200,169,110,.9);
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
+    cursor: pointer;
+    transition: opacity .4s, transform .2s;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+  }
+  #play-btn:hover { transform: scale(1.08); }
+  #play-btn svg { width: 28px; height: 28px; fill: #fff; margin-left: 4px; }
+  #play-btn.hidden { opacity: 0; pointer-events: none; }
+
+  #replay-btn {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: rgba(200,169,110,.9);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    transition: opacity .4s, transform .2s;
+    box-shadow: 0 8px 32px rgba(0,0,0,.6);
+    opacity: 0; pointer-events: none;
+  }
+  #replay-btn.visible { opacity: 1; pointer-events: all; }
+  #replay-btn:hover { transform: translate(-50%,-50%) scale(1.08); }
+  #replay-btn svg { width: 26px; height: 26px; fill: #fff; }
+
+  /* ── Scene indicator dots ── */
+  #dots {
+    position: absolute; bottom: 18px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 8px;
+    pointer-events: none;
+  }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: rgba(255,255,255,.3);
+    transition: background .3s, transform .3s;
+  }
+  .dot.active { background: #c8a96e; transform: scale(1.4); }
+
+  /* ── Time display ── */
+  #timer {
+    position: absolute; bottom: 28px; right: 20px;
+    font-size: 11px; letter-spacing: 2px; color: rgba(255,255,255,.4);
+    font-family: monospace;
+  }
+</style>
+</head>
+<body>
+
+<div id="player">
+
+  <!-- SCENE 1: Brand Intro -->
+  <div class="scene" id="s1">
+    <div class="bg"></div>
+    <div class="logo-wrap">
+      <div class="brand">Crestview Properties</div>
+      <div class="divider"></div>
+      <div class="tagline">Find Your Forever Home</div>
+      <div class="sub">Luxury Residential &nbsp;·&nbsp; Est. 2008</div>
+    </div>
+  </div>
+
+  <!-- SCENE 2: Exterior -->
+  <div class="scene" id="s2">
+    <div class="photo"></div>
+    <div class="address-wrap">
+      <div class="address-tag">New Listing</div>
+      <div class="address">340 Crestview Drive</div>
+      <div class="city">Maplewood, CA 94025</div>
+      <div class="stats">
+        <div class="stat-item">
+          <div class="stat-num">5</div>
+          <div class="stat-label">Bedrooms</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">4.5</div>
+          <div class="stat-label">Bathrooms</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">4,820</div>
+          <div class="stat-label">Sq. Ft.</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">0.8</div>
+          <div class="stat-label">Acres</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 3: Living Room -->
+  <div class="scene" id="s3">
+    <div class="photo"></div>
+    <div class="caption">
+      <div class="room-label">Interior</div>
+      <div class="room-name">Living Room</div>
+      <div class="room-desc">
+        Soaring 14-foot ceilings with floor-to-ceiling windows
+        that flood the space with natural light.
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 4: Kitchen -->
+  <div class="scene" id="s4">
+    <div class="photo"></div>
+    <div class="caption">
+      <div class="room-label">Culinary</div>
+      <div class="room-name">Chef's Kitchen</div>
+      <div class="features">
+        <div class="feat">Calacatta marble countertops</div>
+        <div class="feat">Wolf 6-burner range</div>
+        <div class="feat">Sub-Zero refrigeration</div>
+        <div class="feat">Walk-in pantry</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 5: Master Suite -->
+  <div class="scene" id="s5">
+    <div class="photo"></div>
+    <div class="badge">
+      <div class="badge-text">Primary Suite</div>
+      <div class="badge-num">1,240 ft²</div>
+    </div>
+    <div class="caption">
+      <div class="room-label">Retreat</div>
+      <div class="room-name">Master Suite</div>
+      <div class="room-desc">
+        Spa-inspired en suite with heated floors,
+        freestanding soaking tub, and rain shower.
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 6: Amenities -->
+  <div class="scene" id="s6">
+    <div class="content">
+      <div class="section-label">Property Highlights</div>
+      <div class="section-title">Every Detail Considered</div>
+      <div class="grid">
+        <div class="amenity">
+          <div class="amenity-icon">🏊</div>
+          <div class="amenity-val">Infinity Pool</div>
+          <div class="amenity-name">Heated</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🚗</div>
+          <div class="amenity-val">3-Car</div>
+          <div class="amenity-name">Garage</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🌳</div>
+          <div class="amenity-val">0.8 Acres</div>
+          <div class="amenity-name">Landscaped</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🔒</div>
+          <div class="amenity-val">Smart Home</div>
+          <div class="amenity-name">Security</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🌅</div>
+          <div class="amenity-val">Mountain</div>
+          <div class="amenity-name">Views</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">⚡</div>
+          <div class="amenity-val">Solar</div>
+          <div class="amenity-name">+ Battery</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🎬</div>
+          <div class="amenity-val">Home Theater</div>
+          <div class="amenity-name">12-Seat</div>
+        </div>
+        <div class="amenity">
+          <div class="amenity-icon">🏋️</div>
+          <div class="amenity-val">Gym &amp; Spa</div>
+          <div class="amenity-name">Private</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCENE 7: CTA -->
+  <div class="scene" id="s7">
+    <div class="bg"></div>
+    <div class="content">
+      <div class="price-label">Offered At</div>
+      <div class="price">$4,850,000</div>
+      <div class="divider"></div>
+      <div class="agent-name">Sarah Ellison</div>
+      <div class="contact">DRE #01234567 &nbsp;·&nbsp; (650) 555-0182</div>
+      <div class="cta-btn">Schedule a Private Tour</div>
+    </div>
+  </div>
+
+  <!-- Progress -->
+  <div id="progress-bar"></div>
+
+  <!-- Dot indicators -->
+  <div id="dots">
+    <div class="dot" data-scene="0"></div>
+    <div class="dot" data-scene="1"></div>
+    <div class="dot" data-scene="2"></div>
+    <div class="dot" data-scene="3"></div>
+    <div class="dot" data-scene="4"></div>
+    <div class="dot" data-scene="5"></div>
+    <div class="dot" data-scene="6"></div>
+  </div>
+
+  <!-- Timer -->
+  <div id="timer">0:00 / 0:45</div>
+
+  <!-- Play button overlay -->
+  <div id="controls">
+    <div id="play-btn">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </div>
+  </div>
+
+  <!-- Replay button -->
+  <div id="replay-btn">
+    <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+  </div>
+
+</div><!-- #player -->
+
+<script>
+  // Scene timings (seconds): [start, end]
+  const SCENES = [
+    { id: 's1', start: 0,  end: 5  },
+    { id: 's2', start: 5,  end: 13 },
+    { id: 's3', start: 13, end: 21 },
+    { id: 's4', start: 21, end: 29 },
+    { id: 's5', start: 29, end: 37 },
+    { id: 's6', start: 37, end: 43 },
+    { id: 's7', start: 43, end: 45 },
+  ];
+  const DURATION = 45;
+
+  const scenes    = SCENES.map(s => document.getElementById(s.id));
+  const dots      = document.querySelectorAll('.dot');
+  const bar       = document.getElementById('progress-bar');
+  const timer     = document.getElementById('timer');
+  const playBtn   = document.getElementById('play-btn');
+  const replayBtn = document.getElementById('replay-btn');
+
+  let elapsed    = 0;
+  let lastTime   = null;
+  let rafId      = null;
+  let playing    = false;
+  let activeIdx  = -1;
+
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return `${m}:${sec.toString().padStart(2,'0')}`;
+  }
+
+  function setScene(idx) {
+    if (idx === activeIdx) return;
+    scenes.forEach((el, i) => el.classList.toggle('active', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+    activeIdx = idx;
+  }
+
+  function tick(ts) {
+    if (!playing) return;
+    if (lastTime == null) lastTime = ts;
+    const dt = (ts - lastTime) / 1000;
+    lastTime = ts;
+    elapsed = Math.min(elapsed + dt, DURATION);
+
+    // Update progress bar
+    const pct = (elapsed / DURATION) * 100;
+    bar.style.width = pct + '%';
+
+    // Update timer
+    timer.textContent = `${fmt(elapsed)} / ${fmt(DURATION)}`;
+
+    // Pick active scene
+    const idx = SCENES.findIndex(s => elapsed >= s.start && elapsed < s.end);
+    if (idx >= 0) setScene(idx);
+
+    if (elapsed >= DURATION) {
+      finish();
+      return;
+    }
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function play() {
+    if (playing) return;
+    playing = true;
+    lastTime = null;
+    playBtn.classList.add('hidden');
+    replayBtn.classList.remove('visible');
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function finish() {
+    playing = false;
+    cancelAnimationFrame(rafId);
+    replayBtn.classList.add('visible');
+    timer.textContent = `0:45 / 0:45`;
+  }
+
+  function replay() {
+    elapsed = 0;
+    activeIdx = -1;
+    bar.style.width = '0';
+    scenes.forEach(el => el.classList.remove('active'));
+    dots.forEach(d => d.classList.remove('active'));
+    replayBtn.classList.remove('visible');
+    play();
+  }
+
+  playBtn.addEventListener('click', play);
+  replayBtn.addEventListener('click', replay);
+
+  // Click on player to play/pause
+  document.getElementById('player').addEventListener('click', e => {
+    if (e.target === replayBtn || replayBtn.contains(e.target)) return;
+    if (!playing && elapsed < DURATION) play();
+  });
+</script>
+</body>
+</html>
