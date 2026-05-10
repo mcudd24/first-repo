@@ -109,11 +109,13 @@ for (let i = 0; i < TOTAL; i++) {
 await browser.close();
 console.log(`\nAll frames captured in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 
-// ── FFmpeg encode ───────────────────────────────────────────────────────────
+// ── FFmpeg encode with background music ────────────────────────────────────
 console.log('Encoding MP4…');
+const MUSIC = resolve(__dir, 'bg-music.mp3');
 execSync(
-  `ffmpeg -y -framerate ${FPS} -i "${FRAMES}/frame_%05d.png"` +
-  ` -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart "${OUTPUT}"`,
+  `ffmpeg -y -framerate ${FPS} -i "${FRAMES}/frame_%05d.png" -i "${MUSIC}"` +
+  ` -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p` +
+  ` -c:a aac -b:a 128k -shortest -movflags +faststart "${OUTPUT}"`,
   { stdio: 'inherit' },
 );
 
