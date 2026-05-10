@@ -7,8 +7,8 @@ export const Root = () => (
     component={WoodlandHills}
     durationInFrames={1350}
     fps={30}
-    width={960}
-    height={540}
+    width={1280}
+    height={720}
     defaultProps={{}}
   />
 );

@@ -211,11 +211,11 @@ function SceneExterior({ frame }: { frame: number }) {
             Stunning Curb Appeal
           </div>
           <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 16, marginTop: 10, fontFamily: "system-ui, sans-serif" }}>
-            4 Bed · 2 Bath · 2,184 sq ft · 0.46 Acres
+            3 Bed · 2 Bath · 2,236 sq ft · 0.42 Acres
           </div>
         </div>
         <div style={{ display: "flex", gap: 12, marginTop: 20, opacity: badgeOpacity }}>
-          {["$424,900", "Built 1999", "2-Car Garage"].map((b, i) => (
+          {["$364,500", "Built 1999", "2-Car Garage"].map((b, i) => (
             <div key={i} style={{
               background: "rgba(141,184,122,0.2)", border: "1px solid rgba(141,184,122,0.5)",
               borderRadius: 6, padding: "6px 16px", color: "white",
@@ -371,7 +371,7 @@ function SceneCTA({ frame }: { frame: number }) {
         5528 Woodland Hills Dr
       </div>
       <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 18, fontFamily: "system-ui, sans-serif", marginTop: 4, opacity: textOpacity, textAlign: "center" }}>
-        Denton, TX 76208 · $424,900
+        Denton, TX 76208 · $364,500
       </div>
       <div style={{ marginTop: 28, opacity: detailsOpacity, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
         <div style={{ color: GREEN, fontSize: 16, fontFamily: "system-ui, sans-serif" }}>
