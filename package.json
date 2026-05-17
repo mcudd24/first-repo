@@ -1,0 +1,30 @@
+{
+  "name": "first-repo",
+  "version": "1.0.0",
+  "description": "I am cool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "studio": "npx remotion studio remotion/index.ts",
+    "render": "npx remotion render remotion/index.ts ZinzinoViral out/zinzino-viral.mp4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:41597/git/mcudd24/first-repo"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.462",
+    "@remotion/cli": "^4.0.462",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "remotion": "^4.0.462"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3"
+  }
+}
