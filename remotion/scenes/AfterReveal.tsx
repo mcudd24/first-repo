@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, AFTER_SHAPES } from "../FloatingShapes";
 
 export const AfterReveal: React.FC = () => {
   const frame = useCurrentFrame();
@@ -32,6 +33,7 @@ export const AfterReveal: React.FC = () => {
         background: "linear-gradient(180deg, #001a00 0%, #0a2a0a 50%, #001a00 100%)",
       }}
     >
+      <FloatingShapes shapes={AFTER_SHAPES} />
       {/* AFTER tag */}
       <div
         style={{

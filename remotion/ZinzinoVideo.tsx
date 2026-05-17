@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, Sequence } from "remotion";
+import { AbsoluteFill, Audio, Sequence } from "remotion";
 import { Hook } from "./scenes/Hook";
 import { Before } from "./scenes/Before";
 import { Discovery } from "./scenes/Discovery";
@@ -18,6 +18,8 @@ import { CTA } from "./scenes/CTA";
 export const ZinzinoVideo: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#000000" }}>
+      <Audio src={require("../public/background.wav")} volume={0.55} />
+
       <Sequence from={0} durationInFrames={90}>
         <Hook />
       </Sequence>

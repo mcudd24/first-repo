@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, HOOK_SHAPES } from "../FloatingShapes";
 
 export const Hook: React.FC = () => {
   const frame = useCurrentFrame();
@@ -13,6 +14,7 @@ export const Hook: React.FC = () => {
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#0a0a0a" }}>
+      <FloatingShapes shapes={HOOK_SHAPES} />
       {/* Red flash overlay */}
       <AbsoluteFill
         style={{

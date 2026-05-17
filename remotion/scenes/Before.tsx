@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, BEFORE_SHAPES } from "../FloatingShapes";
 
 const Symptom: React.FC<{ text: string; emoji: string; fromFrame: number }> = ({
   text,
@@ -57,6 +58,7 @@ export const Before: React.FC = () => {
         background: "linear-gradient(180deg, #1a0a0a 0%, #0d0d0d 100%)",
       }}
     >
+      <FloatingShapes shapes={BEFORE_SHAPES} />
       {/* BEFORE tag */}
       <div
         style={{

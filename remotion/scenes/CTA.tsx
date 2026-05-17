@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, CTA_SHAPES } from "../FloatingShapes";
 
 export const CTA: React.FC = () => {
   const frame = useCurrentFrame();
@@ -27,6 +28,7 @@ export const CTA: React.FC = () => {
         opacity: bgOpacity,
       }}
     >
+      <FloatingShapes shapes={CTA_SHAPES} />
       <AbsoluteFill
         style={{
           display: "flex",

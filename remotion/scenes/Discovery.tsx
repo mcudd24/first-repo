@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, DISCOVERY_SHAPES } from "../FloatingShapes";
 
 export const Discovery: React.FC = () => {
   const frame = useCurrentFrame();
@@ -25,6 +26,7 @@ export const Discovery: React.FC = () => {
         background: "linear-gradient(160deg, #001f5c 0%, #003087 50%, #00587a 100%)",
       }}
     >
+      <FloatingShapes shapes={DISCOVERY_SHAPES} />
       <AbsoluteFill
         style={{
           display: "flex",

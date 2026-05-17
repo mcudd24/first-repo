@@ -1,5 +1,6 @@
 import React from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { FloatingShapes, MONTAGE_SHAPES } from "../FloatingShapes";
 
 const MilestoneCard: React.FC<{
   week: string;
@@ -77,6 +78,7 @@ export const Montage: React.FC = () => {
         background: "linear-gradient(180deg, #0a1628 0%, #0d2040 60%, #0a1628 100%)",
       }}
     >
+      <FloatingShapes shapes={MONTAGE_SHAPES} />
       <AbsoluteFill
         style={{
           display: "flex",

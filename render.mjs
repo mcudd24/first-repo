@@ -5,12 +5,13 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const CHROME = "/root/.cache/puppeteer/chrome/linux-148.0.7778.167/chrome-linux64/chrome";
-const ENTRY  = path.join(__dirname, "remotion/index.ts");
-const OUT    = path.join(__dirname, "out/zinzino-viral.mp4");
+const CHROME    = "/root/.cache/puppeteer/chrome/linux-148.0.7778.167/chrome-linux64/chrome";
+const ENTRY     = path.join(__dirname, "remotion/index.ts");
+const PUBLIC    = path.join(__dirname, "public");
+const OUT       = path.join(__dirname, "out/zinzino-viral.mp4");
 
 console.log("Bundling…");
-const bundled = await bundle({ entryPoint: ENTRY });
+const bundled = await bundle({ entryPoint: ENTRY, publicDir: PUBLIC });
 
 console.log("Selecting composition…");
 const comp = await selectComposition({
