@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 from telegram import Update
@@ -27,6 +28,7 @@ def main() -> None:
     app.add_handler(CommandHandler("start", start))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
+    asyncio.set_event_loop(asyncio.new_event_loop())
     logger.info("Bot is running...")
     app.run_polling()
 
