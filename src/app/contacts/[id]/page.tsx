@@ -1,0 +1,362 @@
+"use client";
+
+import { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Phone,
+  MessageSquare,
+  Mail,
+  BellPlus,
+  Sparkles,
+  Cake,
+  ArrowLeft,
+  FlaskConical,
+  Package,
+  StickyNote,
+} from "lucide-react";
+import {
+  Avatar,
+  Badge,
+  Button,
+  EmptyState,
+  GlassCard,
+  Input,
+  SectionTitle,
+  Spinner,
+  Textarea,
+} from "@/components/ui";
+import { api } from "@/lib/api";
+import { formatDate, formatDateTime } from "@/lib/dates";
+
+interface Profile {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  birthday: string | null;
+  photoUrl: string | null;
+  status: string;
+  interests: string[];
+  commPreference: string | null;
+  notes: string | null;
+  daysSinceContact: number | null;
+  aiSuggestion: string;
+  purchases: { id: string; purchasedAt: string; product: { name: string } }[];
+  balanceTests: { id: string; testDate: string; notes: string | null }[];
+  messages: { id: string; channel: string; body: string; status: string; createdAt: string }[];
+  reminders: { id: string; title: string; dueDate: string; type: string }[];
+  timeline: { id: string; type: string; title: string; description: string | null; occurredAt: string }[];
+}
+
+const TIMELINE_ICONS: Record<string, React.ReactNode> = {
+  PURCHASE: <Package size={14} />,
+  BALANCE_TEST: <FlaskConical size={14} />,
+  NOTE: <StickyNote size={14} />,
+  MESSAGE_SENT: <MessageSquare size={14} />,
+  AI_SUGGESTION: <Sparkles size={14} />,
+};
+
+export default function ContactProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [reminderTitle, setReminderTitle] = useState("");
+  const [reminderDate, setReminderDate] = useState("");
+  const [showReminderForm, setShowReminderForm] = useState(false);
+
+  const load = useCallback(() => api<Profile>(`/api/contacts/${id}`).then(setProfile), [id]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (!profile) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Spinner className="h-6 w-6" />
+      </div>
+    );
+  }
+
+  const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+
+  const generateMessage = async () => {
+    setBusy("message");
+    setFeedback(null);
+    try {
+      await api("/api/messages", {
+        method: "POST",
+        body: JSON.stringify({ contactId: id, purpose: "friendly check-in" }),
+      });
+      setFeedback("Draft created — review it in Approvals.");
+    } catch (err) {
+      setFeedback(err instanceof Error ? err.message : "Failed to generate draft");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const addNote = async () => {
+    if (!note.trim()) return;
+    setBusy("note");
+    try {
+      await api(`/api/contacts/${id}/notes`, { method: "POST", body: JSON.stringify({ note }) });
+      setNote("");
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const createReminder = async () => {
+    if (!reminderTitle.trim() || !reminderDate) return;
+    setBusy("reminder");
+    try {
+      await api("/api/reminders", {
+        method: "POST",
+        body: JSON.stringify({ contactId: id, title: reminderTitle, dueDate: reminderDate }),
+      });
+      setReminderTitle("");
+      setReminderDate("");
+      setShowReminderForm(false);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <Link
+        href="/contacts"
+        className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-accent-500 animate-fade-in"
+      >
+        <ArrowLeft size={15} /> Contacts
+      </Link>
+
+      {/* Header card */}
+      <GlassCard className="animate-fade-up">
+        <div className="flex flex-wrap items-center gap-5">
+          <Avatar name={fullName} src={profile.photoUrl} size="xl" />
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">{fullName}</h1>
+              <Badge color={profile.status === "CUSTOMER" ? "green" : profile.status === "LEAD" ? "purple" : "gray"}>
+                {profile.status.toLowerCase()}
+              </Badge>
+            </div>
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-slate-500 dark:text-slate-400">
+              {profile.email && <span>{profile.email}</span>}
+              {profile.phone && <span>{profile.phone}</span>}
+              {profile.birthday && (
+                <span className="inline-flex items-center gap-1">
+                  <Cake size={13} /> {formatDate(profile.birthday)}
+                </span>
+              )}
+            </div>
+            {profile.interests.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {profile.interests.map((i) => (
+                  <Badge key={i} color="gray">{i}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          <a href={profile.phone ? `tel:${profile.phone}` : undefined}>
+            <Button variant="secondary" disabled={!profile.phone}>
+              <Phone size={15} /> Call
+            </Button>
+          </a>
+          <a href={profile.phone ? `sms:${profile.phone}` : undefined}>
+            <Button variant="secondary" disabled={!profile.phone}>
+              <MessageSquare size={15} /> Text
+            </Button>
+          </a>
+          <a href={profile.email ? `mailto:${profile.email}` : undefined}>
+            <Button variant="secondary" disabled={!profile.email}>
+              <Mail size={15} /> Email
+            </Button>
+          </a>
+          <Button variant="secondary" onClick={() => setShowReminderForm((v) => !v)}>
+            <BellPlus size={15} /> Reminder
+          </Button>
+          <Button onClick={generateMessage} disabled={busy === "message"}>
+            {busy === "message" ? <Spinner className="border-white/40 border-t-white" /> : <Sparkles size={15} />}
+            Generate message
+          </Button>
+        </div>
+
+        {showReminderForm && (
+          <div className="mt-4 flex flex-wrap items-end gap-2 animate-scale-in">
+            <div className="min-w-48 flex-1">
+              <Input
+                value={reminderTitle}
+                onChange={(e) => setReminderTitle(e.target.value)}
+                placeholder="Reminder title"
+              />
+            </div>
+            <Input
+              type="date"
+              value={reminderDate}
+              onChange={(e) => setReminderDate(e.target.value)}
+              className="w-44"
+            />
+            <Button onClick={createReminder} disabled={busy === "reminder"}>
+              Save
+            </Button>
+          </div>
+        )}
+
+        {feedback && (
+          <p className="mt-3 text-sm text-accent-600 dark:text-accent-300 animate-fade-in">
+            {feedback}{" "}
+            <Link href="/approvals" className="font-medium underline">
+              Open approvals
+            </Link>
+          </p>
+        )}
+      </GlassCard>
+
+      {/* AI suggestion */}
+      <GlassCard className="border-accent-200/60 animate-fade-up">
+        <div className="flex items-start gap-3">
+          <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-accent-500/10 text-accent-500">
+            <Sparkles size={16} />
+          </div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-accent-500">
+              AI suggestion
+            </div>
+            <p className="mt-0.5 text-sm text-slate-600 dark:text-slate-300">{profile.aiSuggestion}</p>
+          </div>
+        </div>
+      </GlassCard>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Timeline */}
+        <section className="lg:col-span-2 animate-fade-up">
+          <SectionTitle>Timeline</SectionTitle>
+          <GlassCard>
+            {profile.timeline.length === 0 ? (
+              <EmptyState title="No history yet" />
+            ) : (
+              <ol className="relative ml-2 space-y-5 border-l border-slate-200 pl-5 dark:border-white/10">
+                {profile.timeline.map((e) => (
+                  <li key={e.id} className="relative">
+                    <span className="absolute -left-[27px] flex h-4 w-4 items-center justify-center rounded-full bg-accent-500/15 text-accent-500 ring-4 ring-[#f2f4f8] dark:ring-[#0b0f17]">
+                      {TIMELINE_ICONS[e.type] ?? <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />}
+                    </span>
+                    <div className="text-sm font-medium">{e.title}</div>
+                    {e.description && (
+                      <div className="text-sm text-slate-500 dark:text-slate-400">{e.description}</div>
+                    )}
+                    <div className="text-xs text-slate-400">{formatDateTime(e.occurredAt)}</div>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </GlassCard>
+
+          <div className="mt-4">
+            <SectionTitle>Add note</SectionTitle>
+            <GlassCard className="space-y-2">
+              <Textarea
+                rows={2}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Jot something down about this contact…"
+              />
+              <Button variant="secondary" onClick={addNote} disabled={!note.trim() || busy === "note"}>
+                Save note
+              </Button>
+            </GlassCard>
+          </div>
+        </section>
+
+        {/* Side column */}
+        <div className="space-y-6">
+          <section className="animate-fade-up">
+            <SectionTitle>Products</SectionTitle>
+            <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
+              {profile.purchases.length === 0 ? (
+                <EmptyState title="No orders yet" />
+              ) : (
+                profile.purchases.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between px-5 py-3">
+                    <span className="text-sm font-medium">{p.product.name}</span>
+                    <span className="text-xs text-slate-400">{formatDate(p.purchasedAt)}</span>
+                  </div>
+                ))
+              )}
+            </GlassCard>
+          </section>
+
+          <section className="animate-fade-up">
+            <SectionTitle>BalanceTests</SectionTitle>
+            <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
+              {profile.balanceTests.length === 0 ? (
+                <EmptyState title="No tests on record" />
+              ) : (
+                profile.balanceTests.map((t) => (
+                  <div key={t.id} className="px-5 py-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">BalanceTest</span>
+                      <span className="text-xs text-slate-400">{formatDate(t.testDate)}</span>
+                    </div>
+                    {t.notes && <p className="text-xs text-slate-400">{t.notes}</p>}
+                  </div>
+                ))
+              )}
+            </GlassCard>
+          </section>
+
+          <section className="animate-fade-up">
+            <SectionTitle>Upcoming reminders</SectionTitle>
+            <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
+              {profile.reminders.length === 0 ? (
+                <EmptyState title="No reminders" />
+              ) : (
+                profile.reminders.map((r) => (
+                  <div key={r.id} className="px-5 py-3">
+                    <div className="text-sm font-medium">{r.title}</div>
+                    <div className="text-xs text-slate-400">due {formatDate(r.dueDate)}</div>
+                  </div>
+                ))
+              )}
+            </GlassCard>
+          </section>
+
+          <section className="animate-fade-up">
+            <SectionTitle>Recent messages</SectionTitle>
+            <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
+              {profile.messages.length === 0 ? (
+                <EmptyState title="No messages yet" />
+              ) : (
+                profile.messages.slice(0, 5).map((m) => (
+                  <div key={m.id} className="px-5 py-3">
+                    <div className="flex items-center justify-between">
+                      <Badge
+                        color={m.status === "SENT" ? "green" : m.status === "REJECTED" ? "red" : "amber"}
+                      >
+                        {m.channel.toLowerCase()} · {m.status.replace("_", " ").toLowerCase()}
+                      </Badge>
+                      <span className="text-xs text-slate-400">{formatDate(m.createdAt)}</span>
+                    </div>
+                    <p className="mt-1 line-clamp-2 text-sm text-slate-500 dark:text-slate-400">{m.body}</p>
+                  </div>
+                ))
+              )}
+            </GlassCard>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
