@@ -13,7 +13,9 @@ import {
   Moon,
   Sun,
   Settings,
+  X,
 } from "lucide-react";
+import { CopilotChat } from "./CopilotChat";
 
 const NAV = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -24,6 +26,12 @@ const NAV = [
   { href: "/copilot", label: "Copilot", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+
+// iOS keeps tab bars to five items; Automations and Settings move to the
+// mobile top bar.
+const MOBILE_NAV = NAV.filter((n) =>
+  ["/", "/contacts", "/import", "/approvals", "/copilot"].includes(n.href)
+);
 
 function useDarkMode() {
   const [dark, setDark] = useState(false);
@@ -46,6 +54,12 @@ function useDarkMode() {
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { dark, toggle } = useDarkMode();
+  const [copilotOpen, setCopilotOpen] = useState(false);
+
+  // The panel duplicates the /copilot page — keep it closed there.
+  useEffect(() => {
+    if (pathname.startsWith("/copilot")) setCopilotOpen(false);
+  }, [pathname]);
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -89,11 +103,93 @@ export function Shell({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="min-w-0 flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-10">{children}</main>
+      <main className="min-w-0 flex-1 px-4 pb-24 pt-2 md:px-8 md:pb-10 md:pt-6">
+        {/* Mobile top bar */}
+        <div className="mb-4 flex items-center justify-between pt-[max(0.25rem,env(safe-area-inset-top))] md:hidden">
+          <Link href="/" className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 text-white shadow">
+              <Sparkles size={15} />
+            </span>
+            <span className="text-sm font-semibold">
+              Zinzino Connect <span className="text-accent-500">AI</span>
+            </span>
+          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/automations"
+              className={`rounded-full p-2 transition-colors ${
+                isActive("/automations")
+                  ? "text-accent-500"
+                  : "text-slate-500 hover:text-accent-500 dark:text-slate-400"
+              }`}
+              title="Automations"
+            >
+              <Zap size={19} />
+            </Link>
+            <Link
+              href="/settings"
+              className={`rounded-full p-2 transition-colors ${
+                isActive("/settings")
+                  ? "text-accent-500"
+                  : "text-slate-500 hover:text-accent-500 dark:text-slate-400"
+              }`}
+              title="Settings"
+            >
+              <Settings size={19} />
+            </Link>
+            <button
+              onClick={toggle}
+              className="rounded-full p-2 text-slate-500 transition-colors hover:text-accent-500 dark:text-slate-400"
+              title={dark ? "Light mode" : "Dark mode"}
+            >
+              {dark ? <Sun size={19} /> : <Moon size={19} />}
+            </button>
+          </div>
+        </div>
+        {children}
+      </main>
+
+      {/* Global copilot: floating button + slide-over panel (desktop) */}
+      {!pathname.startsWith("/copilot") && (
+        <button
+          onClick={() => setCopilotOpen(true)}
+          className="fixed bottom-6 right-6 z-40 hidden h-13 w-13 items-center justify-center rounded-full bg-gradient-to-br from-accent-400 to-accent-600 p-3.5 text-white shadow-[0_8px_24px_rgb(10_132_255/0.45)] transition-transform hover:scale-105 active:scale-95 md:flex"
+          title="Ask the AI Copilot"
+        >
+          <Sparkles size={22} />
+        </button>
+      )}
+      {copilotOpen && (
+        <div className="fixed inset-0 z-50 hidden md:block">
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-fade-in"
+            onClick={() => setCopilotOpen(false)}
+          />
+          <aside className="glass absolute bottom-4 right-4 top-4 flex w-[26rem] flex-col rounded-3xl p-4 animate-scale-in">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 font-semibold">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-accent-400 to-accent-600 text-white">
+                  <Sparkles size={15} />
+                </span>
+                Copilot
+              </div>
+              <button
+                onClick={() => setCopilotOpen(false)}
+                className="rounded-full p-2 text-slate-400 transition-colors hover:bg-white/60 hover:text-slate-700 dark:hover:bg-white/10 dark:hover:text-slate-200"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1">
+              <CopilotChat compact />
+            </div>
+          </aside>
+        </div>
+      )}
 
       {/* Mobile bottom tab bar */}
-      <nav className="glass fixed inset-x-3 bottom-3 z-50 flex justify-around px-2 py-2 md:hidden">
-        {NAV.map(({ href, label, icon: Icon }) => (
+      <nav className="glass fixed inset-x-3 bottom-3 z-50 flex justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] md:hidden">
+        {MOBILE_NAV.map(({ href, label, icon: Icon }) => (
           <Link
             key={href}
             href={href}

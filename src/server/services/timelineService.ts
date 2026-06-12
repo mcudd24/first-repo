@@ -4,6 +4,7 @@ export type TimelineEventType =
   | "IMPORTED"
   | "NOTE"
   | "MESSAGE_SENT"
+  | "MESSAGE_RECEIVED"
   | "PURCHASE"
   | "BALANCE_TEST"
   | "REMINDER_CREATED"

@@ -49,7 +49,7 @@ interface Profile {
   aiSuggestion: string;
   purchases: { id: string; purchasedAt: string; product: { name: string } }[];
   balanceTests: { id: string; testDate: string; notes: string | null }[];
-  messages: { id: string; channel: string; body: string; status: string; createdAt: string }[];
+  messages: { id: string; channel: string; direction: string; body: string; status: string; createdAt: string }[];
   reminders: { id: string; title: string; dueDate: string; type: string }[];
   timeline: { id: string; type: string; title: string; description: string | null; occurredAt: string }[];
 }
@@ -59,6 +59,7 @@ const TIMELINE_ICONS: Record<string, React.ReactNode> = {
   BALANCE_TEST: <FlaskConical size={14} />,
   NOTE: <StickyNote size={14} />,
   MESSAGE_SENT: <MessageSquare size={14} />,
+  MESSAGE_RECEIVED: <MessageSquare size={14} />,
   AI_SUGGESTION: <Sparkles size={14} />,
 };
 
@@ -77,6 +78,9 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [testDate, setTestDate] = useState("");
   const [showTestForm, setShowTestForm] = useState(false);
+  const [showReplyForm, setShowReplyForm] = useState(false);
+  const [replyChannel, setReplyChannel] = useState("SMS");
+  const [replyBody, setReplyBody] = useState("");
 
   const load = useCallback(() => api<Profile>(`/api/contacts/${id}`).then(setProfile), [id]);
   useEffect(() => {
@@ -188,6 +192,28 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       });
       setTestDate("");
       setShowTestForm(false);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const logReply = async () => {
+    if (!replyBody.trim()) return;
+    setBusy("reply");
+    setFeedback(null);
+    try {
+      const result = await api<{ flagged: boolean }>(`/api/contacts/${id}/inbound`, {
+        method: "POST",
+        body: JSON.stringify({ channel: replyChannel, body: replyBody }),
+      });
+      setReplyBody("");
+      setShowReplyForm(false);
+      if (result.flagged) {
+        setFeedback(
+          "Heads up: this looks like a medical question. It's been flagged for your review and a compliant reply draft is waiting in Approvals."
+        );
+      }
       await load();
     } finally {
       setBusy(null);
@@ -317,6 +343,9 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
           <Button variant="secondary" onClick={() => setShowReminderForm((v) => !v)}>
             <BellPlus size={15} /> Reminder
           </Button>
+          <Button variant="secondary" onClick={() => setShowReplyForm((v) => !v)}>
+            <MessageSquare size={15} /> Log reply
+          </Button>
           <Button onClick={generateMessage} disabled={busy === "message"}>
             {busy === "message" ? <Spinner className="border-white/40 border-t-white" /> : <Sparkles size={15} />}
             Generate message
@@ -340,6 +369,35 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
             />
             <Button onClick={createReminder} disabled={busy === "reminder"}>
               Save
+            </Button>
+          </div>
+        )}
+
+        {showReplyForm && (
+          <div className="mt-4 space-y-2 animate-scale-in">
+            <div className="flex gap-2">
+              <select
+                value={replyChannel}
+                onChange={(e) => setReplyChannel(e.target.value)}
+                className="rounded-xl border border-slate-200/80 bg-white/80 px-3 py-2 text-sm focus:border-accent-400 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+              >
+                <option value="SMS">SMS</option>
+                <option value="EMAIL">Email</option>
+                <option value="WHATSAPP">WhatsApp</option>
+              </select>
+              <span className="self-center text-xs text-slate-400">
+                Paste what {profile.firstName} sent you — it joins the timeline.
+              </span>
+            </div>
+            <Textarea
+              rows={2}
+              value={replyBody}
+              onChange={(e) => setReplyBody(e.target.value)}
+              placeholder={`e.g. "Thanks! Feeling great so far — when should I re-test?"`}
+            />
+            <Button onClick={logReply} disabled={!replyBody.trim() || busy === "reply"}>
+              {busy === "reply" ? <Spinner className="border-white/40 border-t-white" /> : <Check size={15} />}
+              Save reply
             </Button>
           </div>
         )}
@@ -541,9 +599,19 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                   <div key={m.id} className="px-5 py-3">
                     <div className="flex items-center justify-between">
                       <Badge
-                        color={m.status === "SENT" ? "green" : m.status === "REJECTED" ? "red" : "amber"}
+                        color={
+                          m.direction === "INBOUND"
+                            ? "purple"
+                            : m.status === "SENT"
+                              ? "green"
+                              : m.status === "REJECTED"
+                                ? "red"
+                                : "amber"
+                        }
                       >
-                        {m.channel.toLowerCase()} · {m.status.replace("_", " ").toLowerCase()}
+                        {m.direction === "INBOUND"
+                          ? `${m.channel.toLowerCase()} · received`
+                          : `${m.channel.toLowerCase()} · ${m.status.replace("_", " ").toLowerCase()}`}
                       </Badge>
                       <span className="text-xs text-slate-400">{formatDate(m.createdAt)}</span>
                     </div>

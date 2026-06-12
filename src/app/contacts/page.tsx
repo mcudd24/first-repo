@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Sparkles, UserPlus } from "lucide-react";
+import { Download, Search, Sparkles, UserPlus } from "lucide-react";
 import { Avatar, Badge, EmptyState, GlassCard, Input, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 
@@ -47,6 +47,13 @@ export default function ContactsPage() {
       <header className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
         <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
         <div className="flex gap-2">
+          <a
+            href="/api/contacts/export"
+            download
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-800 transition-all hover:bg-white active:scale-[0.97] dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
+          >
+            <Download size={15} /> CSV
+          </a>
           <Link
             href="/import"
             className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-800 transition-all hover:bg-white active:scale-[0.97] dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
@@ -116,7 +123,10 @@ export default function ContactsPage() {
                     <span className="truncate font-medium">
                       {c.firstName} {c.lastName}
                     </span>
-                    <Badge color={c.status === "CUSTOMER" ? "green" : c.status === "LEAD" ? "purple" : "gray"}>
+                    <Badge
+                      color={c.status === "CUSTOMER" ? "green" : c.status === "LEAD" ? "purple" : "gray"}
+                      className="hidden sm:inline-flex"
+                    >
                       {c.status.toLowerCase()}
                     </Badge>
                   </div>
