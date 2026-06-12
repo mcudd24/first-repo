@@ -95,6 +95,10 @@ export class MockProvider implements AIProvider {
       body = `Hi ${first}! Just checking in to see how you're doing. Let me know if there's anything I can help with!`;
     }
 
+    if (ctx.senderName) {
+      body += `\n– ${ctx.senderName.split(" ")[0]}`;
+    }
+
     return {
       subject: ctx.channel === "EMAIL" ? `Checking in, ${first}!` : null,
       body,

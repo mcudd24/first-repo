@@ -96,6 +96,7 @@ export class ClaudeProvider implements AIProvider {
             `Days since last contact: ${ctx.daysSinceLastContact ?? "unknown"}\n` +
             `Last BalanceTest: ${ctx.lastBalanceTestDate ?? "none"}\n` +
             (ctx.extraInstructions ? `Extra instructions: ${ctx.extraInstructions}\n` : "") +
+            (ctx.senderName ? `Sender (sign off naturally as): ${ctx.senderName}\n` : "") +
             `\nSMS/WhatsApp: 1-3 short sentences, no subject. ` +
             `Email: a short subject line then a brief friendly body.`,
         },

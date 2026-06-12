@@ -12,6 +12,7 @@ import {
   Sparkles,
   Moon,
   Sun,
+  Settings,
 } from "lucide-react";
 
 const NAV = [
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/approvals", label: "Approvals", icon: CheckCircle2 },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/copilot", label: "Copilot", icon: Sparkles },
+  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 function useDarkMode() {

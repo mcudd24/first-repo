@@ -24,8 +24,15 @@ interface PendingMessage {
   source: string | null;
   aiGenerated: boolean;
   createdAt: string;
+  sentAt: string | null;
   contact: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null };
 }
+
+const TABS = [
+  { key: "PENDING_APPROVAL", label: "Pending" },
+  { key: "SENT", label: "Sent" },
+  { key: "REJECTED", label: "Rejected" },
+] as const;
 
 const SOURCE_LABELS: Record<string, string> = {
   BIRTHDAY: "Birthday automation",
@@ -47,12 +54,14 @@ export default function ApprovalsPage() {
   const [editSubject, setEditSubject] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("PENDING_APPROVAL");
 
   const load = useCallback(
-    () => api<PendingMessage[]>("/api/messages?status=PENDING_APPROVAL").then(setMessages),
-    []
+    () => api<PendingMessage[]>(`/api/messages?status=${tab}`).then(setMessages),
+    [tab]
   );
   useEffect(() => {
+    setMessages(null);
     load();
   }, [load]);
 
@@ -95,6 +104,22 @@ export default function ApprovalsPage() {
         </p>
       </header>
 
+      <div className="flex gap-1 rounded-full bg-white/60 p-1 dark:bg-white/5 animate-fade-up w-fit">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+              tab === t.key
+                ? "bg-accent-500 text-white"
+                : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
       {error && (
         <GlassCard className="border-red-300/60 text-sm text-red-600 dark:text-red-400 animate-scale-in">
           {error}
@@ -109,8 +134,12 @@ export default function ApprovalsPage() {
         <GlassCard className="animate-fade-up">
           <EmptyState
             icon={<MailCheck size={32} />}
-            title="All caught up"
-            subtitle="Run automations from the dashboard or generate a message from a contact profile to create drafts."
+            title={tab === "PENDING_APPROVAL" ? "All caught up" : `No ${tab === "SENT" ? "sent" : "rejected"} messages`}
+            subtitle={
+              tab === "PENDING_APPROVAL"
+                ? "Run automations from the dashboard or generate a message from a contact profile to create drafts."
+                : undefined
+            }
           />
         </GlassCard>
       ) : (
@@ -128,7 +157,8 @@ export default function ApprovalsPage() {
                       {m.contact.firstName} {m.contact.lastName}
                     </div>
                     <div className="text-xs text-slate-400">
-                      {m.channel === "EMAIL" ? m.contact.email : m.contact.phone} · {formatDateTime(m.createdAt)}
+                      {m.channel === "EMAIL" ? m.contact.email : m.contact.phone} ·{" "}
+                      {m.sentAt ? `sent ${formatDateTime(m.sentAt)}` : formatDateTime(m.createdAt)}
                     </div>
                   </div>
                 </Link>
@@ -169,7 +199,7 @@ export default function ApprovalsPage() {
                 </div>
               )}
 
-              {editing !== m.id && (
+              {editing !== m.id && tab === "PENDING_APPROVAL" && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="success" onClick={() => act(m.id, "approve")} disabled={busy === m.id}>
                     {busy === m.id ? <Spinner className="border-white/40 border-t-white" /> : <Check size={15} />}

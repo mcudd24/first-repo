@@ -195,3 +195,31 @@ export async function deleteContact(id: string) {
 export async function addNote(contactId: string, note: string) {
   await addTimelineEvent(contactId, "NOTE", "Note added", note);
 }
+
+export async function addPurchase(contactId: string, productName: string, purchasedAt?: string) {
+  const product = await db.product.upsert({
+    where: { name: productName },
+    create: { name: productName, category: "Supplement" },
+    update: {},
+  });
+  const date = purchasedAt ? new Date(purchasedAt) : new Date();
+  const purchase = await db.purchase.create({
+    data: { contactId, productId: product.id, purchasedAt: date },
+  });
+  // Logging an order implies the customer relationship is active.
+  await db.contact.update({
+    where: { id: contactId, status: "LEAD" },
+    data: { status: "CUSTOMER" },
+  }).catch(() => undefined);
+  await addTimelineEvent(contactId, "PURCHASE", `Ordered ${productName}`, undefined, date);
+  return purchase;
+}
+
+export async function addBalanceTest(contactId: string, testDate: string, notes?: string) {
+  const date = new Date(testDate);
+  const test = await db.balanceTest.create({
+    data: { contactId, testDate: date, notes: notes || null },
+  });
+  await addTimelineEvent(contactId, "BALANCE_TEST", "BalanceTest taken", notes, date);
+  return test;
+}

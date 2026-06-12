@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, UserPlus } from "lucide-react";
+import { Search, Sparkles, UserPlus } from "lucide-react";
 import { Avatar, Badge, EmptyState, GlassCard, Input, Spinner } from "@/components/ui";
 import { api } from "@/lib/api";
 
@@ -46,12 +46,20 @@ export default function ContactsPage() {
     <div className="space-y-5">
       <header className="flex flex-wrap items-center justify-between gap-3 animate-fade-up">
         <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
-        <Link
-          href="/import"
-          className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-white shadow-[0_4px_14px_rgb(10_132_255/0.35)] transition-all hover:bg-accent-600 active:scale-[0.97]"
-        >
-          <UserPlus size={15} /> Add contacts
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/import"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/70 bg-white/70 px-4 py-2 text-sm font-medium text-slate-800 transition-all hover:bg-white active:scale-[0.97] dark:border-white/10 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15"
+          >
+            <Sparkles size={15} /> Import with AI
+          </Link>
+          <Link
+            href="/contacts/new"
+            className="inline-flex items-center gap-1.5 rounded-full bg-accent-500 px-4 py-2 text-sm font-medium text-white shadow-[0_4px_14px_rgb(10_132_255/0.35)] transition-all hover:bg-accent-600 active:scale-[0.97]"
+          >
+            <UserPlus size={15} /> New contact
+          </Link>
+        </div>
       </header>
 
       <div className="flex flex-wrap items-center gap-2 animate-fade-up">

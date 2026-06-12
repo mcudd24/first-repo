@@ -5,6 +5,7 @@ import { getMessaging, Channel } from "@/server/messaging";
 import { parseJson } from "@/lib/json";
 import { daysSince } from "@/lib/dates";
 import { addTimelineEvent } from "./timelineService";
+import { getSettings } from "./settingsService";
 
 /**
  * Generates an AI draft for a contact. The draft is created with status
@@ -50,6 +51,7 @@ export async function generateDraft(params: {
     });
     body = medicalReferralTemplate(contact.firstName);
   } else {
+    const settings = await getSettings();
     const ctx: MessageDraftContext = {
       contactName: `${contact.firstName} ${contact.lastName}`.trim(),
       channel,
@@ -59,10 +61,14 @@ export async function generateDraft(params: {
       daysSinceLastContact: daysSince(contact.lastContactedAt),
       lastBalanceTestDate: contact.balanceTests[0]?.testDate.toISOString().slice(0, 10) ?? null,
       extraInstructions: params.extraInstructions,
+      senderName: settings.partnerName || undefined,
     };
     const draft = await getAI().draftMessage(ctx);
     subject = draft.subject;
     body = draft.body;
+    if (channel === "EMAIL" && settings.emailSignature) {
+      body = `${body}\n\n${settings.emailSignature}`;
+    }
   }
 
   return db.message.create({

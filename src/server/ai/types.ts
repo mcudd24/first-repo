@@ -88,6 +88,8 @@ export interface MessageDraftContext {
   daysSinceLastContact: number | null;
   lastBalanceTestDate: string | null;
   extraInstructions?: string;
+  /** Partner's name, used for sign-offs when set. */
+  senderName?: string;
 }
 
 export interface MessageDraft {

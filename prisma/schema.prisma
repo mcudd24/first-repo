@@ -147,6 +147,12 @@ model ImportJob {
   resolvedAt    DateTime?
 }
 
+// App-level key-value settings (partner name, signature, …).
+model Setting {
+  key   String @id
+  value String
+}
+
 // Human-review queue, e.g. when a customer asks a medical question.
 model ReviewTask {
   id         String    @id @default(cuid())

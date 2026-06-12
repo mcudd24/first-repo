@@ -13,6 +13,10 @@ import {
   FlaskConical,
   Package,
   StickyNote,
+  Pencil,
+  Check,
+  X,
+  Plus,
 } from "lucide-react";
 import {
   Avatar,
@@ -67,6 +71,12 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
   const [reminderTitle, setReminderTitle] = useState("");
   const [reminderDate, setReminderDate] = useState("");
   const [showReminderForm, setShowReminderForm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [orderProduct, setOrderProduct] = useState("");
+  const [showOrderForm, setShowOrderForm] = useState(false);
+  const [testDate, setTestDate] = useState("");
+  const [showTestForm, setShowTestForm] = useState(false);
 
   const load = useCallback(() => api<Profile>(`/api/contacts/${id}`).then(setProfile), [id]);
   useEffect(() => {
@@ -111,6 +121,87 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
     }
   };
 
+  const startEdit = () => {
+    setEditForm({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email ?? "",
+      phone: profile.phone ?? "",
+      address: profile.address ?? "",
+      birthday: profile.birthday ? profile.birthday.slice(0, 10) : "",
+      status: profile.status,
+      commPreference: profile.commPreference ?? "",
+      interests: profile.interests.join(", "),
+      notes: profile.notes ?? "",
+    });
+    setEditing(true);
+  };
+
+  const saveEdit = async () => {
+    setBusy("edit");
+    try {
+      await api(`/api/contacts/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          firstName: editForm.firstName,
+          lastName: editForm.lastName,
+          email: editForm.email || null,
+          phone: editForm.phone || null,
+          address: editForm.address || null,
+          birthday: editForm.birthday || null,
+          status: editForm.status,
+          commPreference: editForm.commPreference || null,
+          interests: editForm.interests.split(",").map((s) => s.trim()).filter(Boolean),
+          notes: editForm.notes || null,
+        }),
+      });
+      setEditing(false);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const logOrder = async () => {
+    if (!orderProduct.trim()) return;
+    setBusy("order");
+    try {
+      await api(`/api/contacts/${id}/purchases`, {
+        method: "POST",
+        body: JSON.stringify({ productName: orderProduct.trim() }),
+      });
+      setOrderProduct("");
+      setShowOrderForm(false);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const recordTest = async () => {
+    if (!testDate) return;
+    setBusy("test");
+    try {
+      await api(`/api/contacts/${id}/balance-tests`, {
+        method: "POST",
+        body: JSON.stringify({ testDate }),
+      });
+      setTestDate("");
+      setShowTestForm(false);
+      await load();
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const resolveReminder = async (reminderId: string, status: "DONE" | "DISMISSED") => {
+    await api("/api/reminders", {
+      method: "PATCH",
+      body: JSON.stringify({ id: reminderId, status }),
+    });
+    await load();
+  };
+
   const createReminder = async () => {
     if (!reminderTitle.trim() || !reminderDate) return;
     setBusy("reminder");
@@ -147,6 +238,13 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
               <Badge color={profile.status === "CUSTOMER" ? "green" : profile.status === "LEAD" ? "purple" : "gray"}>
                 {profile.status.toLowerCase()}
               </Badge>
+              <button
+                onClick={editing ? () => setEditing(false) : startEdit}
+                className="ml-1 rounded-full p-1.5 text-slate-400 transition-colors hover:bg-white/60 hover:text-accent-500 dark:hover:bg-white/10"
+                title={editing ? "Cancel editing" : "Edit contact"}
+              >
+                {editing ? <X size={16} /> : <Pencil size={16} />}
+              </button>
             </div>
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-sm text-slate-500 dark:text-slate-400">
               {profile.email && <span>{profile.email}</span>}
@@ -166,6 +264,38 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
             )}
           </div>
         </div>
+
+        {/* Inline edit form */}
+        {editing && (
+          <div className="mt-5 space-y-3 rounded-xl bg-white/50 p-4 animate-scale-in dark:bg-white/5">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <EditField label="First name" value={editForm.firstName} onChange={(v) => setEditForm((f) => ({ ...f, firstName: v }))} />
+              <EditField label="Last name" value={editForm.lastName} onChange={(v) => setEditForm((f) => ({ ...f, lastName: v }))} />
+              <EditField label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} />
+              <EditField label="Phone" value={editForm.phone} onChange={(v) => setEditForm((f) => ({ ...f, phone: v }))} />
+              <EditField label="Birthday" type="date" value={editForm.birthday} onChange={(v) => setEditForm((f) => ({ ...f, birthday: v }))} />
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">Status</span>
+                <select
+                  value={editForm.status}
+                  onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+                  className="w-full rounded-xl border border-slate-200/80 bg-white/80 px-3.5 py-2 text-sm focus:border-accent-400 focus:outline-none dark:border-white/10 dark:bg-white/5 dark:text-slate-100"
+                >
+                  <option value="LEAD">Lead</option>
+                  <option value="CUSTOMER">Customer</option>
+                  <option value="INACTIVE">Inactive</option>
+                </select>
+              </label>
+              <EditField label="Address" value={editForm.address} onChange={(v) => setEditForm((f) => ({ ...f, address: v }))} />
+              <EditField label="Interests (comma-separated)" value={editForm.interests} onChange={(v) => setEditForm((f) => ({ ...f, interests: v }))} />
+              <EditField label="Notes" value={editForm.notes} onChange={(v) => setEditForm((f) => ({ ...f, notes: v }))} />
+            </div>
+            <Button onClick={saveEdit} disabled={busy === "edit" || !editForm.firstName?.trim()}>
+              {busy === "edit" ? <Spinner className="border-white/40 border-t-white" /> : <Check size={15} />}
+              Save changes
+            </Button>
+          </div>
+        )}
 
         {/* Quick actions */}
         <div className="mt-5 flex flex-wrap gap-2">
@@ -283,9 +413,40 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
         {/* Side column */}
         <div className="space-y-6">
           <section className="animate-fade-up">
-            <SectionTitle>Products</SectionTitle>
+            <SectionTitle
+              action={
+                <button
+                  onClick={() => setShowOrderForm((v) => !v)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-accent-500 hover:underline"
+                >
+                  <Plus size={12} /> Log order
+                </button>
+              }
+            >
+              Products
+            </SectionTitle>
             <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
-              {profile.purchases.length === 0 ? (
+              {showOrderForm && (
+                <div className="flex gap-2 p-3 animate-scale-in">
+                  <Input
+                    value={orderProduct}
+                    onChange={(e) => setOrderProduct(e.target.value)}
+                    placeholder="e.g. BalanceOil+"
+                    list="zinzino-products"
+                  />
+                  <datalist id="zinzino-products">
+                    <option value="BalanceOil+" />
+                    <option value="ZinoBiotic+" />
+                    <option value="Xtend" />
+                    <option value="Protect+" />
+                    <option value="Viva+" />
+                  </datalist>
+                  <Button onClick={logOrder} disabled={!orderProduct.trim() || busy === "order"} className="shrink-0">
+                    Save
+                  </Button>
+                </div>
+              )}
+              {profile.purchases.length === 0 && !showOrderForm ? (
                 <EmptyState title="No orders yet" />
               ) : (
                 profile.purchases.map((p) => (
@@ -299,9 +460,28 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
           </section>
 
           <section className="animate-fade-up">
-            <SectionTitle>BalanceTests</SectionTitle>
+            <SectionTitle
+              action={
+                <button
+                  onClick={() => setShowTestForm((v) => !v)}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-accent-500 hover:underline"
+                >
+                  <Plus size={12} /> Record test
+                </button>
+              }
+            >
+              BalanceTests
+            </SectionTitle>
             <GlassCard className="divide-y divide-slate-100 p-0 dark:divide-white/5">
-              {profile.balanceTests.length === 0 ? (
+              {showTestForm && (
+                <div className="flex gap-2 p-3 animate-scale-in">
+                  <Input type="date" value={testDate} onChange={(e) => setTestDate(e.target.value)} />
+                  <Button onClick={recordTest} disabled={!testDate || busy === "test"} className="shrink-0">
+                    Save
+                  </Button>
+                </div>
+              )}
+              {profile.balanceTests.length === 0 && !showTestForm ? (
                 <EmptyState title="No tests on record" />
               ) : (
                 profile.balanceTests.map((t) => (
@@ -324,9 +504,27 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
                 <EmptyState title="No reminders" />
               ) : (
                 profile.reminders.map((r) => (
-                  <div key={r.id} className="px-5 py-3">
-                    <div className="text-sm font-medium">{r.title}</div>
-                    <div className="text-xs text-slate-400">due {formatDate(r.dueDate)}</div>
+                  <div key={r.id} className="flex items-center justify-between gap-2 px-5 py-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{r.title}</div>
+                      <div className="text-xs text-slate-400">due {formatDate(r.dueDate)}</div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <button
+                        onClick={() => resolveReminder(r.id, "DONE")}
+                        className="rounded-full p-1.5 text-emerald-500 transition-colors hover:bg-emerald-500/10"
+                        title="Mark done"
+                      >
+                        <Check size={15} />
+                      </button>
+                      <button
+                        onClick={() => resolveReminder(r.id, "DISMISSED")}
+                        className="rounded-full p-1.5 text-slate-400 transition-colors hover:bg-red-500/10 hover:text-red-500"
+                        title="Dismiss"
+                      >
+                        <X size={15} />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -358,5 +556,26 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
         </div>
       </div>
     </div>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+  type = "text",
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">
+        {label}
+      </span>
+      <Input type={type} value={value} onChange={(e) => onChange(e.target.value)} />
+    </label>
   );
 }

@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   Play,
   Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import {
   Badge,
@@ -59,6 +60,16 @@ export default function DashboardPage() {
   const load = useCallback(() => api<Dashboard>("/api/dashboard").then(setData), []);
   useEffect(() => {
     load();
+    // Background scheduler stand-in: evaluate automations at most once an
+    // hour, then refresh if anything new was proposed.
+    api<{ skipped?: boolean; draftsCreated: number; remindersCreated: number }>(
+      "/api/automations/run?ifStale=1",
+      { method: "POST" }
+    )
+      .then((r) => {
+        if (!r.skipped && (r.draftsCreated > 0 || r.remindersCreated > 0)) load();
+      })
+      .catch(() => undefined);
   }, [load]);
 
   const runAutomations = async () => {
@@ -131,11 +142,24 @@ export default function DashboardPage() {
           </div>
           <ul className="space-y-2 text-sm">
             {data.openReviewTasks.map((t) => (
-              <li key={t.id} className="text-slate-600 dark:text-slate-300">
-                <Badge color="amber" className="mr-2">
-                  {t.reason.replace("_", " ").toLowerCase()}
-                </Badge>
-                {t.details}
+              <li key={t.id} className="flex items-start justify-between gap-3 text-slate-600 dark:text-slate-300">
+                <span>
+                  <Badge color="amber" className="mr-2">
+                    {t.reason.replace("_", " ").toLowerCase()}
+                  </Badge>
+                  {t.details}
+                </span>
+                <button
+                  onClick={() =>
+                    api("/api/review-tasks", {
+                      method: "PATCH",
+                      body: JSON.stringify({ id: t.id, action: "resolve" }),
+                    }).then(load)
+                  }
+                  className="shrink-0 rounded-full px-3 py-1 text-xs font-medium text-amber-600 transition-colors hover:bg-amber-500/10 dark:text-amber-400"
+                >
+                  Resolve
+                </button>
               </li>
             ))}
           </ul>
@@ -150,19 +174,30 @@ export default function DashboardPage() {
               <EmptyState title="Nothing due this week" subtitle="Run automations to generate reminders." />
             ) : (
               data.upcomingReminders.map((r) => (
-                <Link
+                <div
                   key={r.id}
-                  href={`/contacts/${r.contact.id}`}
                   className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-white/50 dark:hover:bg-white/5"
                 >
-                  <div>
-                    <div className="text-sm font-medium">{r.title}</div>
+                  <Link href={`/contacts/${r.contact.id}`} className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{r.title}</div>
                     <div className="text-xs text-slate-400">due {formatDate(r.dueDate)}</div>
-                  </div>
+                  </Link>
                   <Badge color={r.type === "BIRTHDAY" ? "amber" : r.type === "BALANCE_TEST" ? "purple" : "blue"}>
                     {r.type.replace("_", " ").toLowerCase()}
                   </Badge>
-                </Link>
+                  <button
+                    onClick={() =>
+                      api("/api/reminders", {
+                        method: "PATCH",
+                        body: JSON.stringify({ id: r.id, status: "DONE" }),
+                      }).then(load)
+                    }
+                    className="shrink-0 rounded-full p-1.5 text-emerald-500 transition-colors hover:bg-emerald-500/10"
+                    title="Mark done"
+                  >
+                    <CheckCircle2 size={16} />
+                  </button>
+                </div>
               ))
             )}
           </GlassCard>
