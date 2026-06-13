@@ -46,6 +46,14 @@ Without `ANTHROPIC_API_KEY` the app runs on a deterministic **mock AI provider**
 so every feature is demoable offline. Set the key in `.env` to enable Claude for
 real extraction (vision/PDF), drafting, and the conversational copilot.
 
+## Login
+
+Every page sits behind a password login. Without `APP_PASSWORD` set, the app
+accepts the demo password `zinzino` (shown on the login screen). Set
+`APP_PASSWORD` to your own password to lock it down — changing it signs out
+all existing sessions. Sessions last 30 days; sign out from the sidebar (or
+the top bar on mobile).
+
 ## Deploying to Vercel
 
 The repo deploys to Vercel with **zero configuration**: when no `DATABASE_URL`
@@ -62,6 +70,7 @@ Notes for that demo mode:
   and set `DATABASE_URL` — the schema is already Postgres-compatible.
 - Set `ANTHROPIC_API_KEY` in Vercel → Settings → Environment Variables to
   switch from the demo AI provider to live Claude.
+- Set `APP_PASSWORD` there too to replace the demo login password.
 
 On an iPhone, open the deployed URL in Safari and use **Share → Add to Home
 Screen** — the app installs with its icon and runs full-screen like a native
