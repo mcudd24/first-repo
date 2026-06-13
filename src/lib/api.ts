@@ -9,6 +9,11 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
         : { "Content-Type": "application/json", ...init?.headers },
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    // Session expired or signed out elsewhere — back to the login screen.
+    window.location.href = "/login";
+    return new Promise<T>(() => {}); // never resolves; page is navigating away
+  }
   if (!res.ok) {
     throw new Error((data as { error?: string }).error ?? `Request failed (${res.status})`);
   }
