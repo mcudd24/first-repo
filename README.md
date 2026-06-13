@@ -46,6 +46,27 @@ Without `ANTHROPIC_API_KEY` the app runs on a deterministic **mock AI provider**
 so every feature is demoable offline. Set the key in `.env` to enable Claude for
 real extraction (vision/PDF), drafting, and the conversational copilot.
 
+## Deploying to Vercel
+
+The repo deploys to Vercel with **zero configuration**: when no `DATABASE_URL`
+is set, the app bootstraps a bundled, pre-seeded demo database into the
+serverless tmp directory at runtime. Import the repo, deploy, done.
+
+Notes for that demo mode:
+
+- Demo data is **ephemeral** — serverless instances reset it. Perfect for
+  trying the app on your phone; not for real customer data.
+- Refresh the bundled snapshot any time with `npm run db:bundle-demo`.
+- For persistence, add a Postgres database (Vercel → Storage → Neon),
+  change `provider = "sqlite"` to `"postgresql"` in `prisma/schema.prisma`,
+  and set `DATABASE_URL` — the schema is already Postgres-compatible.
+- Set `ANTHROPIC_API_KEY` in Vercel → Settings → Environment Variables to
+  switch from the demo AI provider to live Claude.
+
+On an iPhone, open the deployed URL in Safari and use **Share → Add to Home
+Screen** — the app installs with its icon and runs full-screen like a native
+app.
+
 ## Scripts
 
 | Command | What it does |
