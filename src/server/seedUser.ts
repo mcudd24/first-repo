@@ -39,6 +39,7 @@ export async function seedNewUser(userId: string) {
       phone: "+1 555 0101",
       status: "CUSTOMER",
       notes: "Demo contact — started BalanceOil after her first BalanceTest.",
+      healthConcerns: "Joint stiffness after workouts; wants to support omega balance and inflammation response.",
       lastContactedAt: subDays(today, 12),
       products: ["BalanceOil+", "ZinoBiotic+"],
       balanceTest: subMonths(today, 2),
@@ -49,6 +50,7 @@ export async function seedNewUser(userId: string) {
       email: "mary.andersen@example.com",
       status: "CUSTOMER",
       notes: "Demo contact — prefers email; asked about subscription discounts.",
+      healthConcerns: "Gut health and regularity; asked about fiber and simple daily routines.",
       lastContactedAt: subDays(today, 62),
       products: ["BalanceOil+"],
       balanceTest: subMonths(today, 7),
@@ -60,6 +62,7 @@ export async function seedNewUser(userId: string) {
       phone: "+1 555 0106",
       status: "LEAD",
       notes: "Demo contact — met at the wellness fair; interested in omega testing.",
+      healthConcerns: "Low energy, sleep quality, and general wellness goals.",
       lastContactedAt: subDays(today, 16),
     },
   ];
@@ -74,6 +77,7 @@ export async function seedNewUser(userId: string) {
         phone: c.phone,
         status: c.status,
         notes: c.notes,
+        healthConcerns: c.healthConcerns,
         lastContactedAt: c.lastContactedAt,
       },
     });

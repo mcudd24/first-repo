@@ -87,6 +87,7 @@ export interface CreateContactInput {
   status?: string;
   interests?: string[];
   commPreference?: string | null;
+  healthConcerns?: string | null;
   notes?: string | null;
   products?: string[];
   balanceTestDate?: string | null;
@@ -106,6 +107,7 @@ export async function createContact(userId: string, input: CreateContactInput) {
       status: input.status ?? (input.products?.length ? "CUSTOMER" : "LEAD"),
       interests: toJson(input.interests ?? []),
       commPreference: input.commPreference || null,
+      healthConcerns: input.healthConcerns || null,
       notes: input.notes || null,
     },
   });
@@ -168,6 +170,7 @@ export async function getContactProfile(userId: string, id: string) {
     products: contact.purchases.map((p) => p.product.name),
     lastBalanceTestDate: contact.balanceTests[0]?.testDate.toISOString() ?? null,
     birthday: contact.birthday?.toISOString() ?? null,
+    healthConcerns: contact.healthConcerns,
     notes: contact.notes,
   };
   const aiSuggestion = await getAI().suggestNextAction(snapshot);
@@ -200,6 +203,7 @@ export async function updateContact(
       ...(data.status !== undefined && { status: data.status }),
       ...(data.interests !== undefined && { interests: toJson(data.interests) }),
       ...(data.commPreference !== undefined && { commPreference: data.commPreference }),
+      ...(data.healthConcerns !== undefined && { healthConcerns: data.healthConcerns }),
       ...(data.notes !== undefined && { notes: data.notes }),
     },
   });

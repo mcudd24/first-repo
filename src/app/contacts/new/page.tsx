@@ -21,6 +21,7 @@ export default function NewContactPage() {
     status: "LEAD",
     commPreference: "",
     interests: "",
+    healthConcerns: "",
     notes: "",
   });
 
@@ -45,6 +46,7 @@ export default function NewContactPage() {
           status: form.status,
           commPreference: form.commPreference || null,
           interests: form.interests.split(",").map((s) => s.trim()).filter(Boolean),
+          healthConcerns: form.healthConcerns.trim() || null,
           notes: form.notes.trim() || null,
         }),
       });
@@ -122,6 +124,14 @@ export default function NewContactPage() {
           </div>
           <Field label="Address">
             <Input value={form.address} onChange={set("address")} />
+          </Field>
+          <Field label="Common health problems / wellness concerns">
+            <Textarea
+              rows={3}
+              value={form.healthConcerns}
+              onChange={set("healthConcerns")}
+              placeholder="e.g. joint pain, inflammation, gut health, low energy, sleep, heart health, weight goals"
+            />
           </Field>
           <Field label="Notes">
             <Textarea rows={3} value={form.notes} onChange={set("notes")} />

@@ -29,6 +29,7 @@ const createSchema = z.object({
   status: z.enum(["LEAD", "CUSTOMER", "INACTIVE"]).optional(),
   interests: z.array(z.string()).optional(),
   commPreference: z.enum(["SMS", "EMAIL", "WHATSAPP"]).nullish(),
+  healthConcerns: z.string().nullish(),
   notes: z.string().nullish(),
   products: z.array(z.string()).optional(),
   balanceTestDate: z.string().nullish(),

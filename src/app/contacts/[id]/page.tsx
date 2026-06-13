@@ -44,6 +44,7 @@ interface Profile {
   status: string;
   interests: string[];
   commPreference: string | null;
+  healthConcerns: string | null;
   notes: string | null;
   daysSinceContact: number | null;
   aiSuggestion: string;
@@ -136,6 +137,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
       status: profile.status,
       commPreference: profile.commPreference ?? "",
       interests: profile.interests.join(", "),
+      healthConcerns: profile.healthConcerns ?? "",
       notes: profile.notes ?? "",
     });
     setEditing(true);
@@ -156,6 +158,7 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
           status: editForm.status,
           commPreference: editForm.commPreference || null,
           interests: editForm.interests.split(",").map((s) => s.trim()).filter(Boolean),
+          healthConcerns: editForm.healthConcerns || null,
           notes: editForm.notes || null,
         }),
       });
@@ -314,8 +317,20 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
               </label>
               <EditField label="Address" value={editForm.address} onChange={(v) => setEditForm((f) => ({ ...f, address: v }))} />
               <EditField label="Interests (comma-separated)" value={editForm.interests} onChange={(v) => setEditForm((f) => ({ ...f, interests: v }))} />
-              <EditField label="Notes" value={editForm.notes} onChange={(v) => setEditForm((f) => ({ ...f, notes: v }))} />
             </div>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">Common health problems / wellness concerns</span>
+              <Textarea
+                rows={3}
+                value={editForm.healthConcerns}
+                onChange={(e) => setEditForm((f) => ({ ...f, healthConcerns: e.target.value }))}
+                placeholder="e.g. joint pain, inflammation, gut health, low energy, sleep, heart health, weight goals"
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-slate-400">Notes</span>
+              <Textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))} />
+            </label>
             <Button onClick={saveEdit} disabled={busy === "edit" || !editForm.firstName?.trim()}>
               {busy === "edit" ? <Spinner className="border-white/40 border-t-white" /> : <Check size={15} />}
               Save changes
@@ -411,6 +426,20 @@ export default function ContactProfilePage({ params }: { params: Promise<{ id: s
           </p>
         )}
       </GlassCard>
+
+      {profile.healthConcerns && (
+        <GlassCard className="border-emerald-200/60 animate-fade-up">
+          <div className="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-300">
+            Health problems / wellness concerns
+          </div>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
+            {profile.healthConcerns}
+          </p>
+          <p className="mt-2 text-xs text-slate-400">
+            Use this to guide product conversations. Avoid diagnosing or making medical claims.
+          </p>
+        </GlassCard>
+      )}
 
       {/* AI suggestion */}
       <GlassCard className="border-accent-200/60 animate-fade-up">

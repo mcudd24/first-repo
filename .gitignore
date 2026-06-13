@@ -5,6 +5,7 @@ build/
 
 .env
 .env.local
+.vercel/
 *.db
 *.db-journal
 
@@ -12,3 +13,4 @@ npm-debug.log*
 .DS_Store
 *.tsbuildinfo
 next-env.d.ts
+.env*

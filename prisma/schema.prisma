@@ -46,6 +46,7 @@ model Contact {
   status          String    @default("LEAD") // LEAD | CUSTOMER | INACTIVE
   interests       String    @default("[]") // JSON string[]
   commPreference  String? // SMS | EMAIL | WHATSAPP
+  healthConcerns  String? // Common health problems / wellness concerns shared by the contact
   notes           String?
   lastContactedAt DateTime?
   createdAt       DateTime  @default(now())
