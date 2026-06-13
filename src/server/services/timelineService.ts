@@ -12,6 +12,7 @@ export type TimelineEventType =
   | "STATUS_CHANGE";
 
 export async function addTimelineEvent(
+  userId: string,
   contactId: string,
   type: TimelineEventType,
   title: string,
@@ -19,6 +20,13 @@ export async function addTimelineEvent(
   occurredAt?: Date
 ) {
   return db.timelineEvent.create({
-    data: { contactId, type, title, description, occurredAt: occurredAt ?? new Date() },
+    data: {
+      userId,
+      contactId,
+      type,
+      title,
+      description,
+      occurredAt: occurredAt ?? new Date(),
+    },
   });
 }

@@ -97,19 +97,20 @@ function describeContacts(rows: Awaited<ReturnType<typeof listContacts>>): strin
 }
 
 async function executeTool(
+  userId: string,
   name: string,
   input: Record<string, unknown>,
   actions: CopilotAction[]
 ): Promise<string> {
   switch (name) {
     case "search_contacts": {
-      const rows = await listContacts(input as ContactFilters);
+      const rows = await listContacts(userId, input as ContactFilters);
       return describeContacts(rows);
     }
 
     case "get_due_reminders": {
       const reminders = await db.reminder.findMany({
-        where: { status: "PENDING", dueDate: { lte: new Date() } },
+        where: { userId, status: "PENDING", dueDate: { lte: new Date() } },
         include: { contact: true },
         orderBy: { dueDate: "asc" },
       });
@@ -120,7 +121,7 @@ async function executeTool(
     }
 
     case "draft_message": {
-      const message = await generateDraft({
+      const message = await generateDraft(userId, {
         contactId: String(input.contactId),
         purpose: String(input.purpose),
         channel: input.channel as "SMS" | "EMAIL" | "WHATSAPP" | undefined,
@@ -141,10 +142,10 @@ async function executeTool(
         status: input.status as string | undefined,
         balanceTestDue: input.balanceTestDue as boolean | undefined,
       };
-      const rows = await listContacts(filters);
+      const rows = await listContacts(userId, filters);
       const targets = rows.slice(0, 20); // sanity cap per copilot request
       for (const c of targets) {
-        await generateDraft({
+        await generateDraft(userId, {
           contactId: c.id,
           purpose: String(input.purpose),
           source: "copilot",
@@ -163,9 +164,16 @@ async function executeTool(
     }
 
     case "create_reminder": {
+      const contactId = String(input.contactId);
+      const owned = await db.contact.findFirst({
+        where: { id: contactId, userId },
+        select: { id: true },
+      });
+      if (!owned) return `Contact ${contactId} not found.`;
       const reminder = await db.reminder.create({
         data: {
-          contactId: String(input.contactId),
+          userId,
+          contactId,
           type: "CUSTOM",
           title: String(input.title),
           dueDate: new Date(String(input.dueDate)),
@@ -187,6 +195,7 @@ async function executeTool(
 }
 
 export async function copilotChat(
+  userId: string,
   history: { role: "user" | "assistant"; text: string }[]
 ): Promise<{ reply: string; actions: CopilotAction[] }> {
   const ai = getAI();
@@ -222,7 +231,7 @@ export async function copilotChat(
     for (const tc of turn.toolCalls) {
       let content: string;
       try {
-        content = await executeTool(tc.name, tc.input, actions);
+        content = await executeTool(userId, tc.name, tc.input, actions);
       } catch (err) {
         content = `Error: ${err instanceof Error ? err.message : "tool failed"}`;
       }

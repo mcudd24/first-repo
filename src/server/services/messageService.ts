@@ -11,15 +11,18 @@ import { getSettings } from "./settingsService";
  * Generates an AI draft for a contact. The draft is created with status
  * PENDING_APPROVAL — nothing is ever sent from here.
  */
-export async function generateDraft(params: {
-  contactId: string;
-  channel?: Channel;
-  purpose: string;
-  extraInstructions?: string;
-  source?: string;
-}) {
-  const contact = await db.contact.findUnique({
-    where: { id: params.contactId },
+export async function generateDraft(
+  userId: string,
+  params: {
+    contactId: string;
+    channel?: Channel;
+    purpose: string;
+    extraInstructions?: string;
+    source?: string;
+  }
+) {
+  const contact = await db.contact.findFirst({
+    where: { id: params.contactId, userId },
     include: {
       purchases: { include: { product: true } },
       balanceTests: { orderBy: { testDate: "desc" }, take: 1 },
@@ -42,6 +45,7 @@ export async function generateDraft(params: {
     // task and substitute the referral template.
     await db.reviewTask.create({
       data: {
+        userId,
         contactId: contact.id,
         reason: "MEDICAL_QUESTION",
         details: `Draft request flagged as medical. Purpose: "${params.purpose}"${
@@ -51,7 +55,7 @@ export async function generateDraft(params: {
     });
     body = medicalReferralTemplate(contact.firstName);
   } else {
-    const settings = await getSettings();
+    const settings = await getSettings(userId);
     const ctx: MessageDraftContext = {
       contactName: `${contact.firstName} ${contact.lastName}`.trim(),
       channel,
@@ -73,6 +77,7 @@ export async function generateDraft(params: {
 
   return db.message.create({
     data: {
+      userId,
       contactId: contact.id,
       channel,
       subject,
@@ -85,16 +90,21 @@ export async function generateDraft(params: {
   });
 }
 
-export async function listMessages(status?: string) {
+export async function listMessages(userId: string, status?: string) {
   return db.message.findMany({
-    where: status ? { status } : undefined,
+    where: { userId, ...(status ? { status } : {}) },
     include: { contact: true },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function updateMessageBody(id: string, body: string, subject?: string | null) {
-  const message = await db.message.findUnique({ where: { id } });
+export async function updateMessageBody(
+  userId: string,
+  id: string,
+  body: string,
+  subject?: string | null
+) {
+  const message = await db.message.findFirst({ where: { id, userId } });
   if (!message) throw new Error("Message not found");
   if (message.status === "SENT") throw new Error("Cannot edit a sent message");
   return db.message.update({
@@ -103,8 +113,13 @@ export async function updateMessageBody(id: string, body: string, subject?: stri
   });
 }
 
-export async function rejectMessage(id: string) {
-  return db.message.update({ where: { id }, data: { status: "REJECTED" } });
+export async function rejectMessage(userId: string, id: string) {
+  const result = await db.message.updateMany({
+    where: { id, userId },
+    data: { status: "REJECTED" },
+  });
+  if (result.count === 0) throw new Error("Message not found");
+  return db.message.findUnique({ where: { id } });
 }
 
 /**
@@ -112,16 +127,18 @@ export async function rejectMessage(id: string) {
  * Inbound text is safety-scanned: a medical question creates a ReviewTask
  * AND a safe referral draft so the partner has a compliant reply ready.
  */
-export async function logInboundMessage(params: {
-  contactId: string;
-  channel: Channel;
-  body: string;
-}) {
-  const contact = await db.contact.findUnique({ where: { id: params.contactId } });
+export async function logInboundMessage(
+  userId: string,
+  params: { contactId: string; channel: Channel; body: string }
+) {
+  const contact = await db.contact.findFirst({
+    where: { id: params.contactId, userId },
+  });
   if (!contact) throw new Error("Contact not found");
 
   const message = await db.message.create({
     data: {
+      userId,
       contactId: contact.id,
       channel: params.channel,
       direction: "INBOUND",
@@ -133,6 +150,7 @@ export async function logInboundMessage(params: {
   });
 
   await addTimelineEvent(
+    userId,
     contact.id,
     "MESSAGE_RECEIVED",
     `${params.channel} received`,
@@ -144,6 +162,7 @@ export async function logInboundMessage(params: {
     flagged = true;
     await db.reviewTask.create({
       data: {
+        userId,
         contactId: contact.id,
         reason: "MEDICAL_QUESTION",
         details: `${contact.firstName} ${contact.lastName} asked: "${params.body.slice(0, 300)}"`,
@@ -152,6 +171,7 @@ export async function logInboundMessage(params: {
     // Compliant reply, staged for approval like everything else.
     await db.message.create({
       data: {
+        userId,
         contactId: contact.id,
         channel: params.channel,
         body: medicalReferralTemplate(contact.firstName),
@@ -169,8 +189,11 @@ export async function logInboundMessage(params: {
  * THE approval gate. The only code path in the system that transitions a
  * message to SENT, and it is only reachable from a user-initiated API call.
  */
-export async function approveAndSend(id: string) {
-  const message = await db.message.findUnique({ where: { id }, include: { contact: true } });
+export async function approveAndSend(userId: string, id: string) {
+  const message = await db.message.findFirst({
+    where: { id, userId },
+    include: { contact: true },
+  });
   if (!message) throw new Error("Message not found");
   if (message.status !== "PENDING_APPROVAL" && message.status !== "DRAFT") {
     throw new Error(`Cannot send a message in status ${message.status}`);
@@ -202,6 +225,7 @@ export async function approveAndSend(id: string) {
   ]);
 
   await addTimelineEvent(
+    userId,
     message.contactId,
     "MESSAGE_SENT",
     `${message.channel} sent`,

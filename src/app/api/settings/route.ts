@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSettings, updateSettings } from "@/server/services/settingsService";
+import { requireUserId } from "@/server/user";
 
 export async function GET() {
-  const settings = await getSettings();
+  const userId = await requireUserId();
+  const settings = await getSettings(userId);
   return NextResponse.json({
     ...settings,
     aiProvider: process.env.ANTHROPIC_API_KEY ? "claude" : "mock",
@@ -19,9 +21,10 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(req: NextRequest) {
+  const userId = await requireUserId();
   const body = patchSchema.safeParse(await req.json());
   if (!body.success) {
     return NextResponse.json({ error: body.error.message }, { status: 400 });
   }
-  return NextResponse.json(await updateSettings(body.data));
+  return NextResponse.json(await updateSettings(userId, body.data));
 }

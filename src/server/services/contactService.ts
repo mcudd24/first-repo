@@ -14,15 +14,15 @@ export interface ContactFilters {
   product?: string;
 }
 
-export async function listContacts(filters: ContactFilters = {}) {
-  const where: Record<string, unknown> = {};
+export async function listContacts(userId: string, filters: ContactFilters = {}) {
+  const where: Record<string, unknown> = { userId };
 
   if (filters.status) where.status = filters.status;
   if (filters.search) {
     where.OR = [
-      { firstName: { contains: filters.search } },
-      { lastName: { contains: filters.search } },
-      { email: { contains: filters.search } },
+      { firstName: { contains: filters.search, mode: "insensitive" } },
+      { lastName: { contains: filters.search, mode: "insensitive" } },
+      { email: { contains: filters.search, mode: "insensitive" } },
       { phone: { contains: filters.search } },
     ];
   }
@@ -31,7 +31,9 @@ export async function listContacts(filters: ContactFilters = {}) {
     where.OR = [{ lastContactedAt: { lt: cutoff } }, { lastContactedAt: null }];
   }
   if (filters.product) {
-    where.purchases = { some: { product: { name: { contains: filters.product } } } };
+    where.purchases = {
+      some: { product: { name: { contains: filters.product, mode: "insensitive" } } },
+    };
   }
 
   let contacts = await db.contact.findMany({
@@ -91,9 +93,10 @@ export interface CreateContactInput {
   source?: string; // timeline provenance, e.g. "Imported from PDF"
 }
 
-export async function createContact(input: CreateContactInput) {
+export async function createContact(userId: string, input: CreateContactInput) {
   const contact = await db.contact.create({
     data: {
+      userId,
       firstName: input.firstName,
       lastName: input.lastName ?? "",
       email: input.email || null,
@@ -108,6 +111,7 @@ export async function createContact(input: CreateContactInput) {
   });
 
   await addTimelineEvent(
+    userId,
     contact.id,
     "IMPORTED",
     input.source ?? "Contact created",
@@ -120,22 +124,33 @@ export async function createContact(input: CreateContactInput) {
       create: { name: productName, category: "Supplement" },
       update: {},
     });
-    await db.purchase.create({ data: { contactId: contact.id, productId: product.id } });
-    await addTimelineEvent(contact.id, "PURCHASE", `Ordered ${productName}`);
+    await db.purchase.create({
+      data: { userId, contactId: contact.id, productId: product.id },
+    });
+    await addTimelineEvent(userId, contact.id, "PURCHASE", `Ordered ${productName}`);
   }
 
   if (input.balanceTestDate) {
     const testDate = new Date(input.balanceTestDate);
-    await db.balanceTest.create({ data: { contactId: contact.id, testDate } });
-    await addTimelineEvent(contact.id, "BALANCE_TEST", "BalanceTest taken", undefined, testDate);
+    await db.balanceTest.create({
+      data: { userId, contactId: contact.id, testDate },
+    });
+    await addTimelineEvent(
+      userId,
+      contact.id,
+      "BALANCE_TEST",
+      "BalanceTest taken",
+      undefined,
+      testDate
+    );
   }
 
   return contact;
 }
 
-export async function getContactProfile(id: string) {
-  const contact = await db.contact.findUnique({
-    where: { id },
+export async function getContactProfile(userId: string, id: string) {
+  const contact = await db.contact.findFirst({
+    where: { id, userId },
     include: {
       purchases: { include: { product: true }, orderBy: { purchasedAt: "desc" } },
       balanceTests: { orderBy: { testDate: "desc" } },
@@ -166,11 +181,13 @@ export async function getContactProfile(id: string) {
 }
 
 export async function updateContact(
+  userId: string,
   id: string,
   data: Partial<Omit<CreateContactInput, "products" | "balanceTestDate" | "source">>
 ) {
-  return db.contact.update({
-    where: { id },
+  // updateMany scoped by userId is the safest single-step authorization check.
+  const result = await db.contact.updateMany({
+    where: { id, userId },
     data: {
       ...(data.firstName !== undefined && { firstName: data.firstName }),
       ...(data.lastName !== undefined && { lastName: data.lastName }),
@@ -186,17 +203,35 @@ export async function updateContact(
       ...(data.notes !== undefined && { notes: data.notes }),
     },
   });
+  if (result.count === 0) throw new Error("Contact not found");
+  return db.contact.findUnique({ where: { id } });
 }
 
-export async function deleteContact(id: string) {
-  return db.contact.delete({ where: { id } });
+export async function deleteContact(userId: string, id: string) {
+  const result = await db.contact.deleteMany({ where: { id, userId } });
+  if (result.count === 0) throw new Error("Contact not found");
 }
 
-export async function addNote(contactId: string, note: string) {
-  await addTimelineEvent(contactId, "NOTE", "Note added", note);
+async function assertOwned(userId: string, contactId: string) {
+  const owned = await db.contact.findFirst({
+    where: { id: contactId, userId },
+    select: { id: true },
+  });
+  if (!owned) throw new Error("Contact not found");
 }
 
-export async function addPurchase(contactId: string, productName: string, purchasedAt?: string) {
+export async function addNote(userId: string, contactId: string, note: string) {
+  await assertOwned(userId, contactId);
+  await addTimelineEvent(userId, contactId, "NOTE", "Note added", note);
+}
+
+export async function addPurchase(
+  userId: string,
+  contactId: string,
+  productName: string,
+  purchasedAt?: string
+) {
+  await assertOwned(userId, contactId);
   const product = await db.product.upsert({
     where: { name: productName },
     create: { name: productName, category: "Supplement" },
@@ -204,22 +239,44 @@ export async function addPurchase(contactId: string, productName: string, purcha
   });
   const date = purchasedAt ? new Date(purchasedAt) : new Date();
   const purchase = await db.purchase.create({
-    data: { contactId, productId: product.id, purchasedAt: date },
+    data: { userId, contactId, productId: product.id, purchasedAt: date },
   });
   // Logging an order implies the customer relationship is active.
-  await db.contact.update({
-    where: { id: contactId, status: "LEAD" },
-    data: { status: "CUSTOMER" },
-  }).catch(() => undefined);
-  await addTimelineEvent(contactId, "PURCHASE", `Ordered ${productName}`, undefined, date);
+  await db.contact
+    .updateMany({
+      where: { id: contactId, userId, status: "LEAD" },
+      data: { status: "CUSTOMER" },
+    })
+    .catch(() => undefined);
+  await addTimelineEvent(
+    userId,
+    contactId,
+    "PURCHASE",
+    `Ordered ${productName}`,
+    undefined,
+    date
+  );
   return purchase;
 }
 
-export async function addBalanceTest(contactId: string, testDate: string, notes?: string) {
+export async function addBalanceTest(
+  userId: string,
+  contactId: string,
+  testDate: string,
+  notes?: string
+) {
+  await assertOwned(userId, contactId);
   const date = new Date(testDate);
   const test = await db.balanceTest.create({
-    data: { contactId, testDate: date, notes: notes || null },
+    data: { userId, contactId, testDate: date, notes: notes || null },
   });
-  await addTimelineEvent(contactId, "BALANCE_TEST", "BalanceTest taken", notes, date);
+  await addTimelineEvent(
+    userId,
+    contactId,
+    "BALANCE_TEST",
+    "BalanceTest taken",
+    notes,
+    date
+  );
   return test;
 }

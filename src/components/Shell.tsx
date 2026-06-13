@@ -13,9 +13,9 @@ import {
   Moon,
   Sun,
   Settings,
-  LogOut,
   X,
 } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
 import { CopilotChat } from "./CopilotChat";
 
 const NAV = [
@@ -52,11 +52,6 @@ function useDarkMode() {
   return { dark, toggle };
 }
 
-async function signOut() {
-  await fetch("/api/auth/logout", { method: "POST" });
-  window.location.href = "/login";
-}
-
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { dark, toggle } = useDarkMode();
@@ -70,8 +65,10 @@ export function Shell({ children }: { children: ReactNode }) {
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-  // The login screen renders without the app chrome.
-  if (pathname === "/login") return <>{children}</>;
+  // Clerk's sign-in / sign-up routes render without the app chrome.
+  if (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up")) {
+    return <>{children}</>;
+  }
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-7xl">
@@ -109,13 +106,10 @@ export function Shell({ children }: { children: ReactNode }) {
           {dark ? <Sun size={18} /> : <Moon size={18} />}
           {dark ? "Light mode" : "Dark mode"}
         </button>
-        <button
-          onClick={signOut}
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-colors hover:bg-white/70 dark:text-slate-400 dark:hover:bg-white/10"
-        >
-          <LogOut size={18} />
-          Sign out
-        </button>
+        <div className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-400">
+          <UserButton afterSignOutUrl="/sign-in" />
+          <span>Account</span>
+        </div>
       </aside>
 
       {/* Main content */}
@@ -160,13 +154,9 @@ export function Shell({ children }: { children: ReactNode }) {
             >
               {dark ? <Sun size={19} /> : <Moon size={19} />}
             </button>
-            <button
-              onClick={signOut}
-              className="rounded-full p-2 text-slate-500 transition-colors hover:text-accent-500 dark:text-slate-400"
-              title="Sign out"
-            >
-              <LogOut size={19} />
-            </button>
+            <div className="px-1">
+              <UserButton afterSignOutUrl="/sign-in" />
+            </div>
           </div>
         </div>
         {children}
