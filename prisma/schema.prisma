@@ -1,6 +1,6 @@
 // Zinzino Connect AI — data model.
-// SQLite for MVP; every type here is Postgres-compatible, so migration is a
-// datasource swap. JSON payloads are stored as String (see src/lib/json.ts).
+// Postgres. Multi-tenant: every owned row carries a userId scoping it to the
+// Clerk-authenticated user that created it. Product is the only global table.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,12 +9,33 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+// One row per Clerk-authenticated user. `clerkId` is the stable Clerk user
+// id; everything user-owned cascades from here so account deletion is clean.
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String?
+  createdAt DateTime @default(now())
+
+  contacts       Contact[]
+  imports        ImportJob[]
+  automations    Automation[]
+  settings       Setting[]
+  reviewTasks    ReviewTask[]
+  messages       Message[]
+  reminders      Reminder[]
+  purchases      Purchase[]
+  balanceTests   BalanceTest[]
+  timelineEvents TimelineEvent[]
 }
 
 model Contact {
   id              String    @id @default(cuid())
+  userId          String
   firstName       String
   lastName        String
   email           String?
@@ -30,6 +51,7 @@ model Contact {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   purchases    Purchase[]
   balanceTests BalanceTest[]
   messages     Message[]
@@ -37,11 +59,12 @@ model Contact {
   timeline     TimelineEvent[]
   reviewTasks  ReviewTask[]
 
-  @@index([status])
-  @@index([lastContactedAt])
-  @@index([birthday])
+  @@index([userId, status])
+  @@index([userId, lastContactedAt])
+  @@index([userId, birthday])
 }
 
+// Shared product catalog — same across all partners.
 model Product {
   id        String     @id @default(cuid())
   name      String     @unique
@@ -51,37 +74,45 @@ model Product {
 
 model Purchase {
   id          String   @id @default(cuid())
+  userId      String
   contactId   String
   productId   String
   purchasedAt DateTime @default(now())
   notes       String?
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 
+  @@index([userId])
   @@index([contactId])
 }
 
 model BalanceTest {
   id        String   @id @default(cuid())
+  userId    String
   contactId String
   testDate  DateTime
   notes     String?
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
   @@index([contactId])
 }
 
 // Append-only history feed rendered on the contact profile.
 model TimelineEvent {
   id          String   @id @default(cuid())
+  userId      String
   contactId   String
   type        String // IMPORTED | NOTE | MESSAGE_SENT | PURCHASE | BALANCE_TEST | REMINDER_CREATED | AI_SUGGESTION | STATUS_CHANGE
   title       String
   description String?
   occurredAt  DateTime @default(now())
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
   @@index([contactId, occurredAt])
@@ -91,25 +122,28 @@ model TimelineEvent {
 // The ONLY path to SENT is a human approval (enforced in messageService).
 model Message {
   id          String    @id @default(cuid())
+  userId      String
   contactId   String
   channel     String // SMS | EMAIL | WHATSAPP
   direction   String    @default("OUTBOUND") // OUTBOUND | INBOUND
   subject     String?
   body        String
-  status      String    @default("PENDING_APPROVAL") // DRAFT | PENDING_APPROVAL | APPROVED | SENT | REJECTED
+  status      String    @default("PENDING_APPROVAL") // DRAFT | PENDING_APPROVAL | APPROVED | SENT | REJECTED | RECEIVED
   aiGenerated Boolean   @default(false)
   source      String? // automation type or "copilot" / "manual" — provenance
   createdAt   DateTime  @default(now())
   sentAt      DateTime?
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
+  @@index([userId, status])
   @@index([contactId])
-  @@index([status])
 }
 
 model Reminder {
   id            String    @id @default(cuid())
+  userId        String
   contactId     String
   type          String // BIRTHDAY | FOLLOW_UP | BALANCE_TEST | REORDER | CUSTOM
   title         String
@@ -119,26 +153,34 @@ model Reminder {
   createdAt     DateTime  @default(now())
   completedAt   DateTime?
 
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
 
+  @@index([userId, status, dueDate])
   @@index([contactId])
-  @@index([status, dueDate])
 }
 
-// One row per automation rule type; the engine reads enabled rows.
+// One row per automation rule type per user; the engine reads enabled rows.
 model Automation {
-  id          String   @id @default(cuid())
-  type        String   @unique // BIRTHDAY | FOLLOW_UP_30 | FOLLOW_UP_60 | FOLLOW_UP_90 | BALANCE_TEST_6M | REORDER | INACTIVE | LEAD_NURTURE
+  id          String    @id @default(cuid())
+  userId      String
+  type        String // BIRTHDAY | FOLLOW_UP_30 | FOLLOW_UP_60 | FOLLOW_UP_90 | BALANCE_TEST_6M | REORDER | INACTIVE | LEAD_NURTURE
   name        String
   description String
-  enabled     Boolean  @default(true)
-  config      String   @default("{}") // JSON, e.g. {"days": 30}
+  enabled     Boolean   @default(true)
+  config      String    @default("{}") // JSON, e.g. {"days": 30}
   lastRunAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type])
+  @@index([userId])
 }
 
 // Staging area for AI contact import. Contacts are only created on approval.
 model ImportJob {
   id            String    @id @default(cuid())
+  userId        String
   source        String // SCAN | PDF | PHOTO | SCREENSHOT | EMAIL | TEXT
   fileName      String?
   rawText       String? // pasted/forwarded text input, if any
@@ -147,17 +189,27 @@ model ImportJob {
   error         String?
   createdAt     DateTime  @default(now())
   resolvedAt    DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
-// App-level key-value settings (partner name, signature, …).
+// App-level key-value settings per user (partner name, signature, …).
 model Setting {
-  key   String @id
-  value String
+  userId String
+  key    String
+  value  String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, key])
 }
 
 // Human-review queue, e.g. when a customer asks a medical question.
 model ReviewTask {
   id         String    @id @default(cuid())
+  userId     String
   contactId  String?
   reason     String // MEDICAL_QUESTION | OTHER
   details    String
@@ -165,7 +217,8 @@ model ReviewTask {
   createdAt  DateTime  @default(now())
   resolvedAt DateTime?
 
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   contact Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
-  @@index([status])
+  @@index([userId, status])
 }

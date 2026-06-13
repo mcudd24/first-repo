@@ -1,26 +1,22 @@
-import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, isValidSession } from "@/lib/auth";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export async function middleware(req: NextRequest) {
-  if (await isValidSession(req.cookies.get(SESSION_COOKIE)?.value)) {
-    return NextResponse.next();
-  }
+const isPublic = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  // PWA manifest + icons must be reachable without auth.
+  "/manifest.webmanifest",
+  "/apple-touch-icon.png",
+  "/icon-192.png",
+  "/icon-512.png",
+]);
 
-  if (req.nextUrl.pathname.startsWith("/api/")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const url = req.nextUrl.clone();
-  url.pathname = "/login";
-  url.search =
-    req.nextUrl.pathname === "/"
-      ? ""
-      : `?next=${encodeURIComponent(req.nextUrl.pathname + req.nextUrl.search)}`;
-  return NextResponse.redirect(url);
-}
+export default clerkMiddleware(async (auth, req) => {
+  if (isPublic(req)) return;
+  await auth.protect();
+});
 
 export const config = {
-  // Everything needs a session except the login flow, Next.js internals, and
-  // static assets (anything with a file extension — icons, manifest, etc.).
-  matcher: ["/((?!login|api/auth|_next|.*\\..*).*)"],
+  // Run on everything except Next.js internals and static files (anything with
+  // a file extension).
+  matcher: ["/((?!_next|.*\\..*).*)", "/(api|trpc)(.*)"],
 };

@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { addNote } from "@/server/services/contactService";
+import { requireUserId } from "@/server/user";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await requireUserId();
   const { id } = await params;
   const { note } = await req.json();
   if (!note || typeof note !== "string") {
     return NextResponse.json({ error: "note is required" }, { status: 400 });
   }
-  await addNote(id, note);
-  return NextResponse.json({ ok: true }, { status: 201 });
+  try {
+    await addNote(userId, id, note);
+    return NextResponse.json({ ok: true }, { status: 201 });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed" },
+      { status: 404 }
+    );
+  }
 }

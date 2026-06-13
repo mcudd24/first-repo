@@ -4,18 +4,17 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma db push --accept-data-loss && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
-    "db:bundle-demo": "npm run db:reset && node scripts/bundle-demo-db.mjs"
+    "db:reset": "prisma db push --force-reset --accept-data-loss"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
+    "@clerk/nextjs": "^6.39.5",
     "@prisma/client": "^6.16.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.544.0",
@@ -31,7 +30,6 @@
     "@types/react-dom": "^19.1.9",
     "prisma": "^6.16.2",
     "tailwindcss": "^4.1.13",
-    "tsx": "^4.20.5",
     "typescript": "^5.9.2"
   }
 }

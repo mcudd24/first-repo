@@ -2,28 +2,35 @@ import { addDays } from "date-fns";
 import { db } from "@/server/db";
 import { isBirthdayToday } from "@/lib/dates";
 
-export async function getDashboard() {
+export async function getDashboard(userId: string) {
   const now = new Date();
   const weekAhead = addDays(now, 7);
 
   const [contacts, pendingMessages, recentImports, upcomingReminders, openReviewTasks, recentMessages] =
     await Promise.all([
-      db.contact.findMany({ select: { id: true, firstName: true, lastName: true, birthday: true, status: true } }),
-      db.message.count({ where: { status: "PENDING_APPROVAL" } }),
-      db.importJob.findMany({ orderBy: { createdAt: "desc" }, take: 5 }),
+      db.contact.findMany({
+        where: { userId },
+        select: { id: true, firstName: true, lastName: true, birthday: true, status: true },
+      }),
+      db.message.count({ where: { userId, status: "PENDING_APPROVAL" } }),
+      db.importJob.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 5,
+      }),
       db.reminder.findMany({
-        where: { status: "PENDING", dueDate: { lte: weekAhead } },
+        where: { userId, status: "PENDING", dueDate: { lte: weekAhead } },
         include: { contact: true },
         orderBy: { dueDate: "asc" },
         take: 8,
       }),
       db.reviewTask.findMany({
-        where: { status: "OPEN" },
+        where: { userId, status: "OPEN" },
         include: { contact: true },
         orderBy: { createdAt: "desc" },
       }),
       db.message.findMany({
-        where: { status: "SENT" },
+        where: { userId, status: "SENT" },
         include: { contact: true },
         orderBy: { sentAt: "desc" },
         take: 5,
@@ -32,7 +39,7 @@ export async function getDashboard() {
 
   const birthdaysToday = contacts.filter((c) => isBirthdayToday(c.birthday));
   const followUpsDue = await db.reminder.count({
-    where: { status: "PENDING", dueDate: { lte: now } },
+    where: { userId, status: "PENDING", dueDate: { lte: now } },
   });
 
   return {

@@ -12,8 +12,8 @@ const DEFAULTS: AppSettings = {
   emailSignature: "",
 };
 
-export async function getSettings(): Promise<AppSettings> {
-  const rows = await db.setting.findMany();
+export async function getSettings(userId: string): Promise<AppSettings> {
+  const rows = await db.setting.findMany({ where: { userId } });
   const map = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   return {
     partnerName: map.partnerName ?? DEFAULTS.partnerName,
@@ -21,14 +21,17 @@ export async function getSettings(): Promise<AppSettings> {
   };
 }
 
-export async function updateSettings(patch: Partial<AppSettings>): Promise<AppSettings> {
+export async function updateSettings(
+  userId: string,
+  patch: Partial<AppSettings>
+): Promise<AppSettings> {
   for (const [key, value] of Object.entries(patch)) {
     if (typeof value !== "string") continue;
     await db.setting.upsert({
-      where: { key },
-      create: { key, value },
+      where: { userId_key: { userId, key } },
+      create: { userId, key, value },
       update: { value },
     });
   }
-  return getSettings();
+  return getSettings(userId);
 }

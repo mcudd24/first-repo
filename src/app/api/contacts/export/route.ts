@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listContacts } from "@/server/services/contactService";
+import { requireUserId } from "@/server/user";
 
 function csvEscape(value: string | null | undefined): string {
   const s = value ?? "";
@@ -7,7 +8,8 @@ function csvEscape(value: string | null | undefined): string {
 }
 
 export async function GET() {
-  const contacts = await listContacts();
+  const userId = await requireUserId();
+  const contacts = await listContacts(userId);
   const header = [
     "First name",
     "Last name",

@@ -3,54 +3,53 @@ import { db } from "@/server/db";
 import { parseJson } from "@/lib/json";
 import { isBirthdayToday } from "@/lib/dates";
 import { generateDraft } from "./messageService";
+import { AUTOMATION_DEFS } from "./automationDefs";
 
 // The automation engine. Evaluates every enabled rule and PROPOSES work:
 // draft messages (PENDING_APPROVAL) and reminders. It never sends anything —
 // that is the whole point of MVP approval mode.
 
-export const AUTOMATION_DEFS = [
-  { type: "BIRTHDAY", name: "Birthday greetings", description: "Draft a birthday message on each contact's birthday.", config: {} },
-  { type: "FOLLOW_UP_30", name: "30-day follow-up", description: "Draft a check-in 30 days after last contact.", config: { days: 30 } },
-  { type: "FOLLOW_UP_60", name: "60-day follow-up", description: "Draft a check-in 60 days after last contact.", config: { days: 60 } },
-  { type: "FOLLOW_UP_90", name: "90-day follow-up", description: "Draft a check-in 90 days after last contact.", config: { days: 90 } },
-  { type: "BALANCE_TEST_6M", name: "6-month BalanceTest reminder", description: "Remind customers ~6 months after their last BalanceTest.", config: { days: 180 } },
-  { type: "REORDER", name: "Product reorder reminder", description: "Draft a reorder nudge ~50 days after a purchase.", config: { days: 50 } },
-  { type: "INACTIVE", name: "Inactive customer reminder", description: "Flag customers with no contact for 120+ days.", config: { days: 120 } },
-  { type: "LEAD_NURTURE", name: "Lead nurture campaign", description: "Draft a gentle nurture message for leads after 14 quiet days.", config: { days: 14 } },
-] as const;
+export { AUTOMATION_DEFS };
 
-export async function ensureAutomationsSeeded() {
-  for (const def of AUTOMATION_DEFS) {
-    await db.automation.upsert({
-      where: { type: def.type },
-      create: {
-        type: def.type,
-        name: def.name,
-        description: def.description,
-        config: JSON.stringify(def.config),
-      },
-      update: {},
-    });
-  }
+export async function ensureAutomationsSeeded(userId: string) {
+  await db.automation.createMany({
+    data: AUTOMATION_DEFS.map((def) => ({
+      userId,
+      type: def.type,
+      name: def.name,
+      description: def.description,
+      config: JSON.stringify(def.config),
+    })),
+    skipDuplicates: true,
+  });
 }
 
-export async function listAutomations() {
-  await ensureAutomationsSeeded();
-  const automations = await db.automation.findMany({ orderBy: { name: "asc" } });
-  return automations.map((a) => ({ ...a, config: parseJson<Record<string, number>>(a.config, {}) }));
+export async function listAutomations(userId: string) {
+  await ensureAutomationsSeeded(userId);
+  const automations = await db.automation.findMany({
+    where: { userId },
+    orderBy: { name: "asc" },
+  });
+  return automations.map((a) => ({
+    ...a,
+    config: parseJson<Record<string, number>>(a.config, {}),
+  }));
 }
 
 export async function updateAutomation(
+  userId: string,
   id: string,
   data: { enabled?: boolean; config?: Record<string, number> }
 ) {
-  return db.automation.update({
-    where: { id },
+  const result = await db.automation.updateMany({
+    where: { id, userId },
     data: {
       ...(data.enabled !== undefined && { enabled: data.enabled }),
       ...(data.config !== undefined && { config: JSON.stringify(data.config) }),
     },
   });
+  if (result.count === 0) throw new Error("Automation not found");
+  return db.automation.findUnique({ where: { id } });
 }
 
 interface RunResult {
@@ -60,21 +59,29 @@ interface RunResult {
 }
 
 /** Skip if this automation already produced output for the contact recently. */
-async function recentlyHandled(contactId: string, source: string, withinDays: number) {
+async function recentlyHandled(
+  userId: string,
+  contactId: string,
+  source: string,
+  withinDays: number
+) {
   const since = subDays(new Date(), withinDays);
   const existing = await db.message.findFirst({
-    where: { contactId, source, createdAt: { gte: since } },
+    where: { userId, contactId, source, createdAt: { gte: since } },
   });
   return Boolean(existing);
 }
 
-export async function runAutomations(): Promise<RunResult> {
-  await ensureAutomationsSeeded();
-  const automations = await db.automation.findMany({ where: { enabled: true } });
+export async function runAutomations(userId: string): Promise<RunResult> {
+  await ensureAutomationsSeeded(userId);
+  const automations = await db.automation.findMany({
+    where: { userId, enabled: true },
+  });
   const result: RunResult = { draftsCreated: 0, remindersCreated: 0, details: [] };
   const now = new Date();
 
   const contacts = await db.contact.findMany({
+    where: { userId },
     include: {
       purchases: { include: { product: true }, orderBy: { purchasedAt: "desc" } },
       balanceTests: { orderBy: { testDate: "desc" }, take: 1 },
@@ -94,8 +101,8 @@ export async function runAutomations(): Promise<RunResult> {
       switch (automation.type) {
         case "BIRTHDAY": {
           if (!isBirthdayToday(contact.birthday)) break;
-          if (await recentlyHandled(contact.id, "BIRTHDAY", 2)) break;
-          await generateDraft({
+          if (await recentlyHandled(userId, contact.id, "BIRTHDAY", 2)) break;
+          await generateDraft(userId, {
             contactId: contact.id,
             purpose: "birthday greeting",
             source: "BIRTHDAY",
@@ -112,8 +119,8 @@ export async function runAutomations(): Promise<RunResult> {
           if (contact.status !== "CUSTOMER") break;
           // Window: fire once when the quiet period crosses the threshold.
           if (quietDays < days || quietDays >= days + 7) break;
-          if (await recentlyHandled(contact.id, automation.type, days)) break;
-          await generateDraft({
+          if (await recentlyHandled(userId, contact.id, automation.type, days)) break;
+          await generateDraft(userId, {
             contactId: contact.id,
             purpose: `${days}-day friendly check-in on how they're doing with their products`,
             source: automation.type,
@@ -133,6 +140,7 @@ export async function runAutomations(): Promise<RunResult> {
           if (hasReminder) break;
           await db.reminder.create({
             data: {
+              userId,
               contactId: contact.id,
               type: "BALANCE_TEST",
               title: `${contact.firstName} is due for a BalanceTest re-test`,
@@ -140,8 +148,8 @@ export async function runAutomations(): Promise<RunResult> {
               autoGenerated: true,
             },
           });
-          if (!(await recentlyHandled(contact.id, "BALANCE_TEST_6M", 30))) {
-            await generateDraft({
+          if (!(await recentlyHandled(userId, contact.id, "BALANCE_TEST_6M", 30))) {
+            await generateDraft(userId, {
               contactId: contact.id,
               purpose: "6-month BalanceTest re-test reminder",
               source: "BALANCE_TEST_6M",
@@ -159,8 +167,8 @@ export async function runAutomations(): Promise<RunResult> {
           const days = config.days ?? 50;
           const due = addDays(lastPurchase.purchasedAt, days);
           if (due > now || due < subDays(now, 14)) break;
-          if (await recentlyHandled(contact.id, "REORDER", days)) break;
-          await generateDraft({
+          if (await recentlyHandled(userId, contact.id, "REORDER", days)) break;
+          await generateDraft(userId, {
             contactId: contact.id,
             purpose: `reorder reminder for ${lastPurchase.product.name}`,
             source: "REORDER",
@@ -177,6 +185,7 @@ export async function runAutomations(): Promise<RunResult> {
           if (hasReminder) break;
           await db.reminder.create({
             data: {
+              userId,
               contactId: contact.id,
               type: "FOLLOW_UP",
               title: `Reconnect with ${contact.firstName} (inactive ${
@@ -194,8 +203,8 @@ export async function runAutomations(): Promise<RunResult> {
         case "LEAD_NURTURE": {
           const days = config.days ?? 14;
           if (contact.status !== "LEAD" || quietDays < days) break;
-          if (await recentlyHandled(contact.id, "LEAD_NURTURE", days)) break;
-          await generateDraft({
+          if (await recentlyHandled(userId, contact.id, "LEAD_NURTURE", days)) break;
+          await generateDraft(userId, {
             contactId: contact.id,
             purpose:
               "gentle lead nurture — share enthusiasm and invite questions, absolutely no pressure",

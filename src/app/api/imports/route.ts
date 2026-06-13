@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createImport, listImports } from "@/server/services/importService";
+import { requireUserId } from "@/server/user";
 
 export async function GET() {
-  return NextResponse.json(await listImports());
+  const userId = await requireUserId();
+  return NextResponse.json(await listImports(userId));
 }
 
 const ACCEPTED_TYPES = new Set([
@@ -16,6 +18,7 @@ const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
 // Accepts multipart/form-data: optional `text`, `source`, and file fields.
 export async function POST(req: NextRequest) {
+  const userId = await requireUserId();
   const form = await req.formData();
   const text = (form.get("text") as string | null) ?? undefined;
   const source = (form.get("source") as string | null) ?? "TEXT";
@@ -43,6 +46,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Provide text or at least one file" }, { status: 400 });
   }
 
-  const job = await createImport({ source, fileName, text, files });
+  const job = await createImport(userId, { source, fileName, text, files });
   return NextResponse.json(job, { status: 201 });
 }
