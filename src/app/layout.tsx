@@ -17,6 +17,13 @@ export const metadata: Metadata = {
   },
 };
 
+// Every route is behind Clerk auth and renders per-user data, so nothing
+// should be statically prerendered at build time. Forcing dynamic rendering
+// also means the Clerk publishable key is only needed at runtime (not during
+// `next build`), which keeps Vercel builds from failing before env vars are
+// fully wired up.
+export const dynamic = "force-dynamic";
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
