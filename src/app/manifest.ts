@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Zinzino Connect AI",
-    short_name: "Zinzino AI",
+    name: "Cudd Realty CRM",
+    short_name: "Cudd Realty",
     description:
-      "AI-powered CRM and customer engagement for independent Zinzino Partners.",
+      "AI-powered CRM and customer engagement for Cudd Realty.",
     start_url: "/",
     display: "standalone",
     background_color: "#f2f4f8",

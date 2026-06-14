@@ -4,13 +4,13 @@ import "./globals.css";
 import { Shell } from "@/components/Shell";
 
 export const metadata: Metadata = {
-  title: "Zinzino Connect AI",
+  title: "Cudd Realty CRM",
   description:
-    "AI-powered CRM and customer engagement for independent Zinzino Partners.",
+    "AI-powered CRM and customer engagement for Cudd Realty.",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Zinzino AI",
+    title: "Cudd Realty",
   },
   icons: {
     apple: "/apple-touch-icon.png",
